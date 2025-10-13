@@ -34,12 +34,12 @@ foreach ($registrations as $registration) {
 }
 
 if (!$matched) {
-    echo json_encode(['status' => 'error', 'message' => 'Código no encontrado']);
+    echo json_encode(['status' => 'not_found', 'message' => 'Código no encontrado']);
     exit;
 }
 
 if ($matched['checked_in'] === '1') {
-    echo json_encode(['status' => 'error', 'message' => 'Este invitado ya ingresó']);
+    echo json_encode(['status' => 'used', 'message' => 'Este invitado ya ingresó']);
     exit;
 }
 

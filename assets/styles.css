@@ -193,6 +193,58 @@ textarea:focus {
   }
 }
 
+@media (max-width: 540px) {
+  main {
+    padding: 2.5rem 1.25rem 3rem;
+  }
+
+  .card {
+    padding: 1.5rem;
+    border-radius: 20px;
+  }
+
+  h1 {
+    text-align: center;
+  }
+
+  .lead {
+    text-align: center;
+  }
+
+  .grid.two-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .button {
+    width: 100%;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+
+  .tab-bar {
+    margin-left: -0.25rem;
+    margin-right: -0.25rem;
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+  }
+}
+
+@media (max-width: 380px) {
+  :root {
+    font-size: 15px;
+  }
+
+  .card {
+    padding: 1.35rem;
+  }
+
+  .tab-button {
+    flex: 1 1 100%;
+  }
+}
+
 .table-wrapper {
   overflow-x: auto;
   background: rgba(255, 255, 255, 0.85);

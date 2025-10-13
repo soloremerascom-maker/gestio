@@ -79,6 +79,8 @@ $error = $_GET['err'] ?? '';
             justify-content: space-between;
             align-items: center;
             margin-bottom: 2rem;
+            gap: 1rem;
+            flex-wrap: wrap;
         }
         .admin-header a {
             color: var(--muted);
@@ -91,6 +93,78 @@ $error = $_GET['err'] ?? '';
         textarea {
             min-height: 160px;
             resize: vertical;
+        }
+        .tab-bar {
+            flex-wrap: wrap;
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+            -webkit-overflow-scrolling: touch;
+        }
+        .tab-button {
+            flex: 1 0 auto;
+            text-align: center;
+        }
+        .scan-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            z-index: 1050;
+        }
+        .scan-modal-backdrop.hidden {
+            display: none;
+        }
+        .scan-modal {
+            background: #fff;
+            border-radius: 20px;
+            padding: 1.75rem;
+            width: min(420px, 100%);
+            text-align: center;
+            box-shadow: 0 24px 48px rgba(15, 23, 42, 0.18);
+        }
+        .scan-modal h3 {
+            margin: 0 0 0.75rem;
+            font-size: 1.35rem;
+        }
+        .scan-modal p {
+            margin: 0 0 1.5rem;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+        .scan-modal.success h3 {
+            color: #047857;
+        }
+        .scan-modal.error h3 {
+            color: #b91c1c;
+        }
+        @media (max-width: 900px) {
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+        }
+        @media (max-width: 768px) {
+            .admin-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            }
+        }
+        @media (max-width: 600px) {
+            .admin-section h2 {
+                font-size: 1.45rem;
+            }
+            .tab-bar {
+                gap: 0.5rem;
+            }
+            .tab-button {
+                padding: 0.65rem 1rem;
+                font-size: 0.95rem;
+            }
         }
     </style>
     <script>
@@ -158,6 +232,13 @@ $error = $_GET['err'] ?? '';
                         <button class="button" id="manual_check_button" type="button">Validar código</button>
                     </div>
                     <div id="scan_result" class="alert" style="margin-top:1.5rem;display:none;"></div>
+                    <div id="scan_modal" class="scan-modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="scan_modal_title">
+                        <div class="scan-modal" id="scan_modal_card">
+                            <h3 id="scan_modal_title">Resultado del escaneo</h3>
+                            <p id="scan_modal_message">Mostraremos el detalle apenas se valide el código.</p>
+                            <button class="button" type="button" id="scan_modal_close">Aceptar</button>
+                        </div>
+                    </div>
                 </section>
             <?php elseif ($tab === 'bulk-email'): ?>
                 <section class="admin-section">
@@ -259,6 +340,13 @@ $error = $_GET['err'] ?? '';
             const resultBox = document.getElementById('scan_result');
             const manualInput = document.getElementById('manual_code');
             const manualButton = document.getElementById('manual_check_button');
+            const modal = document.getElementById('scan_modal');
+            const modalCard = document.getElementById('scan_modal_card');
+            const modalTitle = document.getElementById('scan_modal_title');
+            const modalMessage = document.getElementById('scan_modal_message');
+            const modalClose = document.getElementById('scan_modal_close');
+            let html5QrCodeInstance = null;
+            let modalVisible = false;
 
             function showResult(message, success = true) {
                 if (!resultBox) return;
@@ -268,7 +356,58 @@ $error = $_GET['err'] ?? '';
                 resultBox.style.display = 'block';
             }
 
-            async function validateCode(code) {
+            function openModal(title, message, tone = 'success') {
+                if (!modal || !modalCard) {
+                    showResult(message, tone === 'success');
+                    return;
+                }
+                modalTitle.textContent = title;
+                modalMessage.textContent = message;
+                modalCard.classList.remove('success', 'error');
+                modalCard.classList.add(tone === 'success' ? 'success' : 'error');
+                modal.classList.remove('hidden');
+                modalVisible = true;
+            }
+
+            function closeModal() {
+                if (!modal) return;
+                modal.classList.add('hidden');
+                modalVisible = false;
+                if (html5QrCodeInstance && typeof html5QrCodeInstance.resume === 'function') {
+                    try {
+                        html5QrCodeInstance.resume();
+                    } catch (error) {
+                        console.error('No se pudo reanudar el lector QR', error);
+                    }
+                }
+            }
+
+            modalClose?.addEventListener('click', closeModal);
+            modal?.addEventListener('click', (event) => {
+                if (event.target === modal) {
+                    closeModal();
+                }
+            });
+
+            function handleResponse(data, viaCamera = false) {
+                const success = data.status === 'ok';
+                if (viaCamera) {
+                    let title = success ? 'QR válido' : 'QR no válido';
+                    let tone = success ? 'success' : 'error';
+                    if (data.status === 'used') {
+                        title = 'QR ya utilizado';
+                        tone = 'error';
+                    } else if (data.status === 'not_found') {
+                        title = 'QR desconocido';
+                        tone = 'error';
+                    }
+                    openModal(title, data.message, tone);
+                } else {
+                    showResult(data.message, success);
+                }
+            }
+
+            async function validateCode(code, { viaCamera = false } = {}) {
                 if (!code) return;
                 try {
                     const response = await fetch('scan.php', {
@@ -277,32 +416,42 @@ $error = $_GET['err'] ?? '';
                         body: JSON.stringify({ code })
                     });
                     const data = await response.json();
-                    showResult(data.message, data.status === 'ok');
+                    handleResponse(data, viaCamera);
                 } catch (error) {
-                    showResult('No se pudo validar el código. Verificá tu conexión.', false);
+                    const fallback = {
+                        status: 'error',
+                        message: 'No se pudo validar el código. Verificá tu conexión.'
+                    };
+                    handleResponse(fallback, viaCamera);
                 }
             }
 
             if (manualButton) {
                 manualButton.addEventListener('click', () => {
-                    validateCode(manualInput.value.trim());
+                    validateCode(manualInput.value.trim(), { viaCamera: false });
                 });
                 manualInput?.addEventListener('keydown', (event) => {
                     if (event.key === 'Enter') {
                         event.preventDefault();
-                        validateCode(manualInput.value.trim());
+                        validateCode(manualInput.value.trim(), { viaCamera: false });
                     }
                 });
             }
 
             const qrContainer = document.getElementById('qr-reader');
             if (typeof Html5Qrcode === 'function' && qrContainer) {
-                const qrCodeSuccessCallback = (decodedText) => {
-                    validateCode(decodedText);
-                };
                 const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-                const html5QrCode = new Html5Qrcode('qr-reader');
-                html5QrCode.start({ facingMode: 'environment' }, config, qrCodeSuccessCallback).catch(() => {
+                html5QrCodeInstance = new Html5Qrcode('qr-reader');
+                const qrCodeSuccessCallback = (decodedText) => {
+                    if (modalVisible) {
+                        return;
+                    }
+                    if (html5QrCodeInstance && typeof html5QrCodeInstance.pause === 'function') {
+                        html5QrCodeInstance.pause(true);
+                    }
+                    validateCode(decodedText, { viaCamera: true });
+                };
+                html5QrCodeInstance.start({ facingMode: 'environment' }, config, qrCodeSuccessCallback).catch(() => {
                     showResult('No se pudo acceder a la cámara. Intentá nuevamente o usá el código manual.', false);
                 });
             }

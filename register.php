@@ -24,6 +24,7 @@ if (empty($email)) {
 $firstName = trim($_POST['first_name'] ?? '');
 $lastName = trim($_POST['last_name'] ?? '');
 $phone = trim($_POST['phone'] ?? '');
+$dniValue = '';
 
 if ($firstName === '' || $lastName === '' || $phone === '') {
     header('Location: index.php?error=' . urlencode('Completá todos los datos personales obligatorios.'));
@@ -31,7 +32,8 @@ if ($firstName === '' || $lastName === '' || $phone === '') {
 }
 
 if ($profileType === 'empleado') {
-    if (trim($_POST['dni_legajo'] ?? '') === '' || trim($_POST['branch'] ?? '') === '') {
+    $dniValue = sanitize($_POST['dni_legajo'] ?? '');
+    if ($dniValue === '' || trim($_POST['branch'] ?? '') === '') {
         header('Location: index.php?error=' . urlencode('Debés indicar tu DNI/Legajo y la sucursal.'));
         exit;
     }
@@ -40,7 +42,8 @@ if ($profileType === 'empleado') {
         exit;
     }
 } else {
-    if (trim($_POST['dni_provider'] ?? '') === '' || trim($_POST['company'] ?? '') === '') {
+    $dniValue = sanitize($_POST['dni_provider'] ?? '');
+    if ($dniValue === '' || trim($_POST['company'] ?? '') === '') {
         header('Location: index.php?error=' . urlencode('Completá DNI y empresa para proveedores.'));
         exit;
     }
@@ -48,6 +51,11 @@ if ($profileType === 'empleado') {
 
 if ($email !== SPECIAL_TEST_EMAIL && registrationExists($email)) {
     header('Location: index.php?error=' . urlencode('El correo ya tiene una invitación asignada.'));
+    exit;
+}
+
+if ($dniValue !== '' && registrationFieldExists('dni_legajo', $dniValue)) {
+    header('Location: index.php?error=' . urlencode('El DNI o Legajo ya se encuentra registrado.'));
     exit;
 }
 

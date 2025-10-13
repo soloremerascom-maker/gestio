@@ -248,18 +248,35 @@ function generateQrCode(string $code): string
     throw new RuntimeException($message);
 }
 
-function registrationExists(string $email): bool
+function registrationFieldExists(string $field, string $value, bool $caseSensitive = false): bool
 {
-    if ($email === '') {
+    $value = trim($value);
+    if ($value === '') {
         return false;
     }
+
     $records = readRegistrations();
     foreach ($records as $record) {
-        if (strcasecmp($record['email'], $email) === 0) {
+        if (!array_key_exists($field, $record)) {
+            continue;
+        }
+
+        $candidate = (string) $record[$field];
+        if ($candidate === '') {
+            continue;
+        }
+
+        if ($caseSensitive ? ($candidate === $value) : (strcasecmp($candidate, $value) === 0)) {
             return true;
         }
     }
+
     return false;
+}
+
+function registrationExists(string $email): bool
+{
+    return registrationFieldExists('email', $email);
 }
 
 function sanitize(string $value): string
