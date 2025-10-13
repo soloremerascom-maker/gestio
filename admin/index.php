@@ -219,6 +219,116 @@ if ($tab === 'list' && $searchQuery !== '') {
             background: rgba(148, 163, 184, 0.28);
             color: var(--text);
         }
+        .admin-table {
+            width: 100%;
+        }
+        .admin-table thead th,
+        .admin-table tbody td {
+            font-size: 0.9rem;
+        }
+        .admin-table tbody td {
+            vertical-align: top;
+        }
+        .cell-primary {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        .cell-primary .cell-subtitle {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+        }
+        .cell-secondary,
+        .cell-id,
+        .cell-origin,
+        .cell-code {
+            font-size: 0.85rem;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+        .cell-code {
+            font-family: 'Fira Mono', 'SFMono-Regular', Menlo, monospace;
+            font-size: 0.8rem;
+        }
+        .cell-ellipsis {
+            display: inline-block;
+            max-width: 220px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .cell-status {
+            min-width: 120px;
+        }
+        .cell-status .cell-meta {
+            display: block;
+            margin-top: 0.35rem;
+            font-size: 0.75rem;
+            color: var(--muted);
+        }
+        .cell-actions {
+            white-space: nowrap;
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .action-chip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+            padding: 0.45rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+        }
+        .action-chip:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+        .action-chip--success {
+            background: rgba(16, 185, 129, 0.15);
+            color: #047857;
+            border-color: rgba(16, 185, 129, 0.45);
+        }
+        .action-chip--muted {
+            background: rgba(148, 163, 184, 0.18);
+            color: var(--muted);
+            border-color: rgba(148, 163, 184, 0.28);
+        }
+        .action-chip--danger {
+            background: rgba(239, 68, 68, 0.12);
+            color: #b91c1c;
+            border-color: rgba(239, 68, 68, 0.35);
+        }
+        .action-chip:not(:disabled):hover {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+        }
+        .badge--success {
+            background: rgba(16, 185, 129, 0.15);
+            color: #047857;
+        }
+        .badge--danger {
+            background: rgba(239, 68, 68, 0.12);
+            color: #b91c1c;
+        }
+        .badge--muted {
+            background: rgba(148, 163, 184, 0.18);
+            color: var(--muted);
+        }
+        .list-feedback {
+            display: none;
+            margin-bottom: 1rem;
+        }
         @media (max-width: 900px) {
             .stats-grid {
                 grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -254,9 +364,68 @@ if ($tab === 'list' && $searchQuery !== '') {
                 justify-content: center;
             }
         }
+        @media (max-width: 720px) {
+            .table-wrapper {
+                padding: 0;
+                background: transparent;
+                border: none;
+            }
+            .admin-table thead {
+                display: none;
+            }
+            .admin-table tbody tr {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 0.75rem;
+                padding: 1rem 1.1rem;
+                margin-bottom: 1rem;
+                border-radius: 16px;
+                border: 1px solid rgba(148, 163, 184, 0.25);
+                background: rgba(255, 255, 255, 0.95);
+                box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+            }
+            .admin-table tbody td {
+                border-top: none;
+                padding: 0;
+                white-space: normal;
+            }
+            .admin-table tbody td::before {
+                content: attr(data-label);
+                display: block;
+                font-size: 0.7rem;
+                font-weight: 600;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                color: var(--muted);
+                margin-bottom: 0.2rem;
+            }
+            .admin-table tbody td.cell-actions {
+                grid-column: 1 / -1;
+                justify-content: flex-start;
+                padding-top: 0.25rem;
+            }
+            .cell-primary,
+            .cell-secondary,
+            .cell-id,
+            .cell-origin,
+            .cell-code {
+                font-size: 0.95rem;
+            }
+            .cell-status {
+                min-width: unset;
+            }
+            .cell-status .cell-meta {
+                margin-top: 0.15rem;
+            }
+            .action-chip {
+                flex: 1 1 calc(50% - 0.5rem);
+                justify-content: center;
+            }
+        }
     </style>
     <script>
         const QR_SCAN_ENDPOINT = 'scan.php';
+        const REGISTRATION_MANAGE_ENDPOINT = 'manage_registration.php';
     </script>
 </head>
 <body>
@@ -393,48 +562,73 @@ if ($tab === 'list' && $searchQuery !== '') {
                             <?php endif; ?>
                         </div>
                     </form>
+                    <div id="list_feedback" class="alert list-feedback"></div>
                     <div class="table-wrapper">
-                        <table>
+                        <table class="admin-table" data-role="registrations-table">
                             <thead>
                                 <tr>
-                                    <th>Nombre</th>
+                                    <th>Invitado</th>
                                     <th>Correo</th>
-                                    <th>Tipo</th>
                                     <th>DNI / Legajo</th>
-                                    <th>Sucursal / Empresa</th>
+                                    <th>Origen</th>
                                     <th>Ingreso</th>
                                     <th>Código</th>
+                                    <th>Acciones</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <?php if (empty($filteredRegistrations)): ?>
-                                    <tr>
-                                        <td colspan="7" style="text-align:center;color:var(--muted);padding:1.5rem;">No se encontraron coincidencias.</td>
-                                    </tr>
-                                <?php else: ?>
+                            <tbody data-role="registrations-body">
+                                <?php $hasRows = !empty($filteredRegistrations); ?>
+                                <tr data-role="empty-state" class="<?php echo $hasRows ? 'hidden' : ''; ?>">
+                                    <td colspan="7" style="text-align:center;color:var(--muted);padding:1.5rem;">No se encontraron coincidencias.</td>
+                                </tr>
+                                <?php if ($hasRows): ?>
                                     <?php foreach ($filteredRegistrations as $row): ?>
-                                        <tr>
-                                            <td><?php echo htmlspecialchars(trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''))); ?></td>
-                                            <td><?php echo htmlspecialchars($row['email']); ?></td>
-                                            <td><span class="badge"><?php echo htmlspecialchars(ucfirst($row['profile_type'] ?: 'especial')); ?></span></td>
-                                            <td><?php echo htmlspecialchars($row['dni_legajo']); ?></td>
-                                            <td>
-                                                <?php if ($row['profile_type'] === 'empleado'): ?>
-                                                    <?php echo htmlspecialchars($row['branch']); ?>
-                                                <?php elseif ($row['profile_type'] === 'proveedor'): ?>
-                                                    <?php echo htmlspecialchars($row['company']); ?>
-                                                <?php else: ?>
-                                                    Invitado especial
-                                                <?php endif; ?>
+                                        <?php
+                                            $fullName = trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''));
+                                            $displayName = $fullName !== '' ? $fullName : 'Invitado';
+                                            $profileBadge = $row['profile_type'] ?: 'especial';
+                                            $identifier = $row['dni_legajo'] ?? '';
+                                            $origin = '';
+                                            if (($row['profile_type'] ?? '') === 'empleado') {
+                                                $origin = $row['branch'] ?? '';
+                                            } elseif (($row['profile_type'] ?? '') === 'proveedor') {
+                                                $origin = $row['company'] ?? '';
+                                            } else {
+                                                $origin = 'Invitado especial';
+                                            }
+                                            $isChecked = ($row['checked_in'] ?? '') === '1';
+                                            $formattedTime = formatCheckInTimestamp($row['check_in_timestamp'] ?? '');
+                                        ?>
+                                        <tr
+                                            data-offline-code="<?php echo htmlspecialchars($row['offline_code']); ?>"
+                                            data-name="<?php echo htmlspecialchars($displayName); ?>"
+                                            data-checked-in="<?php echo $isChecked ? '1' : '0'; ?>"
+                                        >
+                                            <td class="cell-primary" data-label="Invitado">
+                                                <span class="cell-ellipsis" title="<?php echo htmlspecialchars($displayName); ?>"><?php echo htmlspecialchars($displayName); ?></span>
+                                                <span class="cell-subtitle"><span class="badge badge--muted"><?php echo htmlspecialchars(ucfirst($profileBadge)); ?></span></span>
                                             </td>
-                                            <td>
-                                                <?php if ($row['checked_in'] === '1'): ?>
-                                                    <span class="badge" style="background:rgba(16,185,129,0.15);color:#047857;">Ingresó</span>
-                                                <?php else: ?>
-                                                    <span class="badge" style="background:rgba(239,68,68,0.12);color:#b91c1c;">Pendiente</span>
-                                                <?php endif; ?>
+                                            <td class="cell-secondary" data-label="Correo">
+                                                <span class="cell-ellipsis" title="<?php echo htmlspecialchars($row['email']); ?>"><?php echo htmlspecialchars($row['email']); ?></span>
                                             </td>
-                                            <td><small><?php echo htmlspecialchars($row['offline_code']); ?></small></td>
+                                            <td class="cell-id" data-label="DNI / Legajo">
+                                                <span class="cell-ellipsis" title="<?php echo htmlspecialchars($identifier); ?>"><?php echo htmlspecialchars($identifier); ?></span>
+                                            </td>
+                                            <td class="cell-origin" data-label="Origen">
+                                                <span class="cell-ellipsis" title="<?php echo htmlspecialchars($origin); ?>"><?php echo htmlspecialchars($origin); ?></span>
+                                            </td>
+                                            <td class="cell-status" data-label="Ingreso">
+                                                <span class="badge <?php echo $isChecked ? 'badge--success' : 'badge--danger'; ?>" data-role="status-badge"><?php echo $isChecked ? 'Ingresó' : 'Pendiente'; ?></span>
+                                                <small class="cell-meta" data-role="status-meta"><?php echo htmlspecialchars($formattedTime); ?></small>
+                                            </td>
+                                            <td class="cell-code" data-label="Código">
+                                                <span title="<?php echo htmlspecialchars($row['offline_code']); ?>"><?php echo htmlspecialchars($row['offline_code']); ?></span>
+                                            </td>
+                                            <td class="cell-actions" data-label="Acciones">
+                                                <button class="action-chip action-chip--success" type="button" data-action="check-in" <?php echo $isChecked ? 'disabled' : ''; ?>>Agregar</button>
+                                                <button class="action-chip action-chip--muted" type="button" data-action="clear" <?php echo $isChecked ? '' : 'disabled'; ?>>Limpiar</button>
+                                                <button class="action-chip action-chip--danger" type="button" data-action="delete">Eliminar</button>
+                                            </td>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
@@ -458,6 +652,208 @@ if ($tab === 'list' && $searchQuery !== '') {
             const modalClose = document.getElementById('scan_modal_close');
             let html5QrCodeInstance = null;
             let modalVisible = false;
+            const registrationsBody = document.querySelector('[data-role="registrations-body"]');
+            const emptyStateRow = registrationsBody ? registrationsBody.querySelector('[data-role="empty-state"]') : null;
+            const listFeedback = document.getElementById('list_feedback');
+            let listFeedbackTimer = null;
+
+            function showListFeedback(message, success = true) {
+                if (!listFeedback) {
+                    return;
+                }
+                listFeedback.textContent = message ?? '';
+                listFeedback.style.display = 'block';
+                listFeedback.classList.remove('alert-success', 'alert-error');
+                listFeedback.classList.add(success ? 'alert-success' : 'alert-error');
+
+                if (listFeedbackTimer) {
+                    clearTimeout(listFeedbackTimer);
+                }
+                listFeedbackTimer = window.setTimeout(() => {
+                    if (listFeedback) {
+                        listFeedback.style.display = 'none';
+                    }
+                }, 5000);
+            }
+
+            function updateEmptyState() {
+                if (!registrationsBody || !emptyStateRow) {
+                    return;
+                }
+                const hasRows = registrationsBody.querySelectorAll('tr[data-offline-code]').length > 0;
+                if (hasRows) {
+                    emptyStateRow.classList.add('hidden');
+                } else {
+                    emptyStateRow.classList.remove('hidden');
+                }
+            }
+
+            function applyListRowUpdate(row, registration, formattedTimestamp) {
+                if (!row || !registration) {
+                    return;
+                }
+
+                const checkedValue = registration.checked_in ?? registration.checkedIn ?? registration['checked-in'];
+                const isChecked = String(checkedValue ?? '').trim() === '1';
+                row.dataset.checkedIn = isChecked ? '1' : '0';
+
+                const badge = row.querySelector('[data-role="status-badge"]');
+                if (badge) {
+                    badge.textContent = isChecked ? 'Ingresó' : 'Pendiente';
+                    badge.classList.remove('badge--success', 'badge--danger');
+                    badge.classList.add(isChecked ? 'badge--success' : 'badge--danger');
+                }
+
+                const meta = row.querySelector('[data-role="status-meta"]');
+                if (meta) {
+                    meta.textContent = formattedTimestamp || '';
+                }
+
+                const checkButton = row.querySelector('[data-action="check-in"]');
+                const clearButton = row.querySelector('[data-action="clear"]');
+                const deleteButton = row.querySelector('[data-action="delete"]');
+
+                if (checkButton) {
+                    checkButton.disabled = isChecked;
+                }
+                if (clearButton) {
+                    clearButton.disabled = !isChecked;
+                }
+                if (deleteButton) {
+                    deleteButton.disabled = false;
+                }
+
+                const registrationName = [registration.first_name, registration.last_name]
+                    .map((value) => (value ?? '').toString().trim())
+                    .filter(Boolean)
+                    .join(' ')
+                    .trim();
+                const safeName = registrationName || 'Invitado';
+                row.dataset.name = safeName;
+                const nameCell = row.querySelector('.cell-primary .cell-ellipsis');
+                if (nameCell) {
+                    nameCell.textContent = safeName;
+                    nameCell.setAttribute('title', safeName);
+                }
+
+                const email = (registration.email ?? '').toString().trim();
+                if (email) {
+                    const emailCell = row.querySelector('.cell-secondary .cell-ellipsis');
+                    if (emailCell) {
+                        emailCell.textContent = email;
+                        emailCell.setAttribute('title', email);
+                    }
+                }
+
+                const identifier = (registration.dni_legajo ?? '').toString().trim();
+                const idCell = row.querySelector('.cell-id .cell-ellipsis');
+                if (idCell) {
+                    idCell.textContent = identifier;
+                    idCell.setAttribute('title', identifier);
+                }
+
+                const profileType = (registration.profile_type ?? '').toString().trim();
+                const branch = (registration.branch ?? '').toString().trim();
+                const company = (registration.company ?? '').toString().trim();
+                const originValue = profileType === 'empleado' ? branch : (profileType === 'proveedor' ? company : (branch || company || 'Invitado especial'));
+                const originCell = row.querySelector('.cell-origin .cell-ellipsis');
+                if (originCell) {
+                    originCell.textContent = originValue;
+                    originCell.setAttribute('title', originValue);
+                }
+
+                const badgeLabel = row.querySelector('.cell-primary .badge');
+                if (badgeLabel) {
+                    const formattedProfile = profileType ? profileType.charAt(0).toUpperCase() + profileType.slice(1) : badgeLabel.textContent;
+                    badgeLabel.textContent = formattedProfile;
+                }
+            }
+
+            async function manageRegistrationAction(action, offlineCode) {
+                const response = await fetch(REGISTRATION_MANAGE_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({ action, offline_code: offlineCode })
+                });
+
+                let data = null;
+                try {
+                    data = await response.json();
+                } catch (error) {
+                    data = null;
+                }
+
+                if (!response.ok || !data) {
+                    throw new Error(data?.message ?? 'No se pudo completar la acción.');
+                }
+
+                if ((data.status ?? 'error') !== 'ok') {
+                    throw new Error(data.message ?? 'No se pudo completar la acción.');
+                }
+
+                return data;
+            }
+
+            registrationsBody?.addEventListener('click', async (event) => {
+                const button = event.target.closest('[data-action]');
+                if (!button) {
+                    return;
+                }
+
+                const action = button.getAttribute('data-action');
+                if (!action) {
+                    return;
+                }
+
+                const row = button.closest('tr[data-offline-code]');
+                if (!row) {
+                    return;
+                }
+
+                const offlineCode = row.getAttribute('data-offline-code');
+                if (!offlineCode) {
+                    return;
+                }
+
+                if (action === 'delete') {
+                    const targetName = row.dataset.name || 'el invitado';
+                    const confirmed = window.confirm(`¿Eliminar a ${targetName}? Esta acción no se puede deshacer.`);
+                    if (!confirmed) {
+                        return;
+                    }
+                }
+
+                const actionButtons = Array.from(row.querySelectorAll('.action-chip'));
+                const previousStates = actionButtons.map((btn) => btn.disabled);
+                actionButtons.forEach((btn) => {
+                    btn.disabled = true;
+                });
+
+                try {
+                    const result = await manageRegistrationAction(action, offlineCode);
+                    const message = result?.message ?? 'Acción completada correctamente.';
+                    showListFeedback(message, true);
+
+                    if (result?.deleted) {
+                        row.remove();
+                        updateEmptyState();
+                        return;
+                    }
+
+                    applyListRowUpdate(row, result?.registration ?? {}, result?.formatted_timestamp ?? '');
+                    updateEmptyState();
+                } catch (error) {
+                    console.error(error);
+                    const fallbackMessage = error instanceof Error ? (error.message || 'No se pudo completar la acción.') : 'No se pudo completar la acción.';
+                    showListFeedback(fallbackMessage, false);
+                    actionButtons.forEach((btn, index) => {
+                        btn.disabled = previousStates[index];
+                    });
+                }
+            });
 
             function escapeHtml(value) {
                 if (value === null || value === undefined) {

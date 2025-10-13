@@ -248,6 +248,95 @@ function generateQrCode(string $code): string
     throw new RuntimeException($message);
 }
 
+function formatCheckInTimestamp(?string $timestamp): string
+{
+    if ($timestamp === null) {
+        return '';
+    }
+
+    $normalized = trim((string) $timestamp);
+    if ($normalized === '') {
+        return '';
+    }
+
+    $time = strtotime($normalized);
+    if ($time === false) {
+        return '';
+    }
+
+    return date('d/m/Y H:i', $time) . ' hs';
+}
+
+function findRegistrationByOfflineCode(string $offlineCode): ?array
+{
+    $offlineCode = trim($offlineCode);
+    if ($offlineCode === '') {
+        return null;
+    }
+
+    foreach (readRegistrations() as $registration) {
+        if (($registration['offline_code'] ?? '') === $offlineCode) {
+            return $registration;
+        }
+    }
+
+    return null;
+}
+
+function buildPersonPayload(array $record, ?string $overrideTimestamp = null): array
+{
+    $firstName = (string) ($record['first_name'] ?? '');
+    $lastName = (string) ($record['last_name'] ?? '');
+    $profileType = (string) ($record['profile_type'] ?? '');
+    $branch = (string) ($record['branch'] ?? '');
+    $company = (string) ($record['company'] ?? '');
+
+    $location = '';
+    if ($profileType === 'empleado') {
+        $location = $branch;
+    } elseif ($profileType === 'proveedor') {
+        $location = $company;
+    } else {
+        $location = $branch ?: ($company ?: 'Invitado especial');
+    }
+
+    $timestamp = $overrideTimestamp ?? (string) ($record['check_in_timestamp'] ?? '');
+    $formattedTimestamp = formatCheckInTimestamp($timestamp);
+
+    return [
+        'first_name' => $firstName,
+        'last_name' => $lastName,
+        'full_name' => trim($firstName . ' ' . $lastName),
+        'dni_legajo' => (string) ($record['dni_legajo'] ?? ''),
+        'branch' => $branch,
+        'company' => $company,
+        'location' => $location,
+        'profile_type' => $profileType,
+        'offline_code' => (string) ($record['offline_code'] ?? ''),
+        'qr_code_text' => (string) ($record['qr_code_text'] ?? ''),
+        'checked_in_at' => $timestamp,
+        'checked_in_at_formatted' => $formattedTimestamp,
+    ];
+}
+
+function composePersonHeadline(array $person): array
+{
+    $fullName = trim((string) ($person['full_name'] ?? ''));
+    if ($fullName === '') {
+        $first = trim((string) ($person['first_name'] ?? ''));
+        $last = trim((string) ($person['last_name'] ?? ''));
+        $fullName = trim($first . ' ' . $last);
+    }
+
+    if ($fullName === '') {
+        $fullName = 'Invitado';
+    }
+
+    $dniLegajo = trim((string) ($person['dni_legajo'] ?? ''));
+
+    return [$fullName, $dniLegajo];
+}
+
 function registrationFieldExists(string $field, string $value, bool $caseSensitive = false): bool
 {
     $value = trim($value);
