@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Tu pase exclusivo</title>
+</head>
+<body style="margin:0;padding:0;background:#f5f7fb;font-family:Segoe UI,Arial,sans-serif;color:#1f2933;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f5f7fb;padding:32px 0;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" style="max-width:640px;background:#ffffff;border-radius:24px;padding:40px 48px;box-shadow:0 18px 36px rgba(15,23,42,0.08);">
+          <tr>
+            <td>
+              <h1 style="margin:0 0 12px;font-size:28px;color:#1c64f2;">¡Tu pase está confirmado!</h1>
+              <p style="margin:0 0 24px;font-size:16px;color:#52606d;">Hola {{full_name}},<br>ya sos parte de la Fiesta Exclusiva 2025. Presentá este código QR para ingresar.</p>
+              <div style="border-radius:20px;border:1px solid rgba(28,100,242,0.12);padding:24px;text-align:center;background:linear-gradient(135deg,rgba(28,100,242,0.06),rgba(245,158,11,0.08));margin-bottom:24px;">
+                {{qr_image_inline}}
+                <div style="margin-top:20px;">
+                  <a href="{{qr_download_link}}" style="display:inline-block;padding:12px 24px;border-radius:999px;background:#1c64f2;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;">Descargar QR</a>
+                </div>
+                <p style="margin:16px 0 0;font-size:14px;color:#52606d;">Código de respaldo:<br><strong style="font-size:18px;color:#1f2933;">{{offline_code}}</strong></p>
+                <p style="margin:12px 0 0;font-size:13px;color:#6b7280;">Guardá este código por si no podés mostrar tu QR.</p>
+              </div>
+              <table role="presentation" width="100%" style="border-collapse:collapse;margin-bottom:24px;">
+                <tr>
+                  <td style="padding:12px 0;font-size:14px;color:#6b7280;">Tipo de invitado</td>
+                  <td style="padding:12px 0;font-size:15px;color:#1f2933;font-weight:600;text-align:right;">{{profile_type}}</td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 0;font-size:14px;color:#6b7280;">Correo registrado</td>
+                  <td style="padding:12px 0;font-size:15px;color:#1f2933;font-weight:600;text-align:right;">{{email}}</td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 0;font-size:14px;color:#6b7280;">Teléfono</td>
+                  <td style="padding:12px 0;font-size:15px;color:#1f2933;font-weight:600;text-align:right;">{{phone}}</td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 0;font-size:14px;color:#6b7280;">Sucursal / Área</td>
+                  <td style="padding:12px 0;font-size:15px;color:#1f2933;font-weight:600;text-align:right;">{{branch}}</td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 0;font-size:14px;color:#6b7280;">Empresa</td>
+                  <td style="padding:12px 0;font-size:15px;color:#1f2933;font-weight:600;text-align:right;">{{company}}</td>
+                </tr>
+              </table>
+              <div style="padding:20px;border-radius:18px;background:#fef3c7;color:#92400e;font-size:13px;line-height:1.6;">
+                <strong>Importante:</strong>
+                <ul style="padding-left:18px;margin:12px 0 0;">
+                  <li>El QR es de uso personal e intransferible.</li>
+                  <li>Mostralo en la entrada para validar tu acceso.</li>
+                  <li>Si perdés la conexión, usá el código de respaldo.</li>
+                </ul>
+              </div>
+              <p style="margin:32px 0 0;font-size:13px;color:#9aa5b1;text-align:center;">Organiza: Equipo de Eventos | Fiesta Exclusiva 2025</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

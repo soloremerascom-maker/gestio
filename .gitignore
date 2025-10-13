@@ -1,0 +1,3 @@
+/data/registrations.csv
+/qrcodes/*
+!qrcodes/.gitkeep
