@@ -16,6 +16,9 @@ $error = $_GET['error'] ?? '';
 <body>
     <main>
         <div class="card">
+            <div class="brand-hero">
+                <img src="tres-logos.webp" alt="Identidad Solo Deportes" loading="lazy">
+            </div>
             <h1>Fiesta Exclusiva 2025</h1>
             <p class="lead">Registrate para recibir tu acceso digital único. Presentalo el día del evento y viví una noche inolvidable.</p>
             <?php if ($success): ?>

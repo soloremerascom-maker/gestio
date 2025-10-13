@@ -46,6 +46,24 @@ function buildPersonPayload(array $record, ?string $overrideTimestamp = null): a
     ];
 }
 
+function composePersonHeadline(array $person): array
+{
+    $fullName = trim((string) ($person['full_name'] ?? ''));
+    if ($fullName === '') {
+        $first = trim((string) ($person['first_name'] ?? ''));
+        $last = trim((string) ($person['last_name'] ?? ''));
+        $fullName = trim($first . ' ' . $last);
+    }
+
+    if ($fullName === '') {
+        $fullName = 'Invitado';
+    }
+
+    $dniLegajo = trim((string) ($person['dni_legajo'] ?? ''));
+
+    return [$fullName, $dniLegajo];
+}
+
 if (!($_SESSION['is_admin'] ?? false)) {
     http_response_code(403);
     echo json_encode(['status' => 'error', 'message' => 'No autorizado']);
@@ -82,9 +100,12 @@ if (!$matched) {
 
 if ($matched['checked_in'] === '1') {
     $person = buildPersonPayload($matched);
-    $message = 'Este invitado ya ingresó anteriormente.';
+    [$displayName, $identifier] = composePersonHeadline($person);
+    $idLabel = $identifier !== '' ? ' (DNI/Legajo: ' . $identifier . ')' : '';
+
+    $message = $displayName . $idLabel . ' ya ingresó anteriormente.';
     if (!empty($person['checked_in_at_formatted'])) {
-        $message = 'Este invitado ya ingresó el ' . $person['checked_in_at_formatted'] . '.';
+        $message = $displayName . $idLabel . ' ya ingresó el ' . $person['checked_in_at_formatted'] . '.';
     }
 
     echo json_encode([
@@ -106,11 +127,14 @@ $success = updateRegistration($matched['offline_code'], function ($row) use ($no
 });
 
 if ($success) {
-    $name = trim($matched['first_name'] . ' ' . $matched['last_name']);
+    $person = buildPersonPayload($updatedRow, $now);
+    [$displayName, $identifier] = composePersonHeadline($person);
+    $idLabel = $identifier !== '' ? ' (DNI/Legajo: ' . $identifier . ')' : '';
+
     echo json_encode([
         'status' => 'ok',
-        'message' => 'Acceso habilitado para ' . $name,
-        'person' => buildPersonPayload($updatedRow, $now),
+        'message' => 'Acceso concedido para ' . $displayName . $idLabel . '.',
+        'person' => $person,
     ], JSON_UNESCAPED_UNICODE);
 } else {
     echo json_encode(['status' => 'error', 'message' => 'No se pudo actualizar el registro']);

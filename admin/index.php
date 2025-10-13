@@ -501,6 +501,25 @@ if ($tab === 'list' && $searchQuery !== '') {
                 return '<dl class="scan-details">' + rows.map(([label, value]) => '<dt>' + escapeHtml(label) + '</dt><dd><strong>' + escapeHtml(value) + '</strong></dd>').join('') + '</dl>';
             }
 
+            function formatPersonSummary(person) {
+                if (!person || typeof person !== 'object') {
+                    return '';
+                }
+
+                const fullName = (person.full_name || [person.first_name, person.last_name].filter(Boolean).join(' ')).trim();
+                const identifierRaw = person.dni_legajo ?? '';
+                const identifier = typeof identifierRaw === 'string'
+                    ? identifierRaw.trim()
+                    : String(identifierRaw ?? '').trim();
+
+                let summary = fullName || 'Invitado';
+                if (identifier) {
+                    summary += ` (DNI/Legajo: ${identifier})`;
+                }
+
+                return summary.trim();
+            }
+
             function showResult(message, success = true, detailsHtml = '') {
                 if (!resultBox) return;
                 const safeMessage = escapeHtml(message ?? '');
@@ -554,9 +573,24 @@ if ($tab === 'list' && $searchQuery !== '') {
 
             function handleResponse(data, viaCamera = false) {
                 const status = data?.status ?? 'error';
-                const message = data?.message ?? 'No se pudo interpretar la respuesta.';
+                const person = data?.person ?? null;
+                const summary = formatPersonSummary(person);
+                const timestampLabel = person?.checked_in_at_formatted || person?.checked_in_at || '';
+
+                let message = data?.message ?? 'No se pudo interpretar la respuesta.';
+                if (status === 'ok' && summary) {
+                    message = `Acceso concedido para ${summary}.`;
+                    if (timestampLabel) {
+                        message += ` Ingreso registrado el ${timestampLabel}.`;
+                    }
+                } else if (status === 'used' && summary) {
+                    message = timestampLabel
+                        ? `${summary} ya ingresó el ${timestampLabel}.`
+                        : `${summary} ya ingresó anteriormente.`;
+                }
+
                 const success = status === 'ok';
-                const detailsHtml = buildDetails(data?.person, status);
+                const detailsHtml = buildDetails(person, status);
 
                 if (viaCamera) {
                     let title = success ? 'QR válido' : 'QR no válido';
