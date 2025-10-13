@@ -125,12 +125,16 @@ function updateRegistration(string $offlineCode, callable $callback): bool
             return false;
         }
         while (($data = fgetcsv($fp)) !== false) {
-            $row = array_combine($headers, $data);
+            if (count($data) < count($headers)) {
+                $data = array_pad($data, count($headers), '');
+            }
+
+            $row = array_combine($headers, array_slice($data, 0, count($headers)));
             if ($row['offline_code'] === $offlineCode) {
                 $newRow = $callback($row);
+                $updated = true;
                 if ($newRow !== null) {
                     $rows[] = $newRow;
-                    $updated = true;
                 }
             } else {
                 $rows[] = $row;
