@@ -4,7 +4,14 @@ const CSV_FILE = STORAGE_DIR . '/registrations.csv';
 const QR_DIR = __DIR__ . '/../qrcodes';
 const SPECIAL_TEST_EMAIL = 'angel.barrios@solodeportes.com';
 
-const QR_REMOTE_SERVICE = 'https://chart.googleapis.com/chart?cht=qr&chs=400x400&chl=%s&chld=H|1';
+const QR_REMOTE_SERVICES = [
+    'https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=%s',
+    'https://quickchart.io/qr?size=400&text=%s',
+    'https://chart.googleapis.com/chart?cht=qr&chs=400x400&chl=%s&chld=H%%7C1',
+];
+const CSV_DELIMITER = ',';
+const CSV_ENCLOSURE = '"';
+const CSV_ESCAPE = '\\';
 
 function ensureStorage(): void
 {
@@ -21,7 +28,7 @@ function ensureStorage(): void
             'qr_code_text', 'checked_in', 'check_in_timestamp'
         ];
         $fp = fopen(CSV_FILE, 'w');
-        fputcsv($fp, $headers);
+        fputcsv($fp, $headers, CSV_DELIMITER, CSV_ENCLOSURE, CSV_ESCAPE);
         fclose($fp);
     }
 }
@@ -60,16 +67,16 @@ function appendRegistration(array $data): void
         fclose($headerHandle);
     }
     if (!empty($headers) && count($headers) === count($data)) {
-        fputcsv($fp, $data);
+        fputcsv($fp, $data, CSV_DELIMITER, CSV_ENCLOSURE, CSV_ESCAPE);
     } elseif (!empty($headers)) {
         $ordered = [];
         $assoc = is_array($data) && array_keys($data) !== range(0, count($data) - 1) ? $data : [];
         foreach ($headers as $header) {
             $ordered[] = $assoc[$header] ?? '';
         }
-        fputcsv($fp, $ordered);
+        fputcsv($fp, $ordered, CSV_DELIMITER, CSV_ENCLOSURE, CSV_ESCAPE);
     } else {
-        fputcsv($fp, $data);
+        fputcsv($fp, $data, CSV_DELIMITER, CSV_ENCLOSURE, CSV_ESCAPE);
     }
     fclose($fp);
 }
@@ -101,7 +108,7 @@ function updateRegistration(string $offlineCode, callable $callback): bool
 
         if ($updated) {
             $fp = fopen(CSV_FILE, 'w');
-            fputcsv($fp, $headers);
+            fputcsv($fp, $headers, CSV_DELIMITER, CSV_ENCLOSURE, CSV_ESCAPE);
             foreach ($rows as $row) {
                 $ordered = [];
                 foreach ($headers as $header) {
@@ -111,7 +118,7 @@ function updateRegistration(string $offlineCode, callable $callback): bool
                     }
                     $ordered[] = $value;
                 }
-                fputcsv($fp, $ordered);
+                fputcsv($fp, $ordered, CSV_DELIMITER, CSV_ENCLOSURE, CSV_ESCAPE);
             }
             fclose($fp);
         }
@@ -171,22 +178,42 @@ function generateQrCode(string $code): string
 {
     ensureStorage();
 
-    $encoded = urlencode($code);
-    $url = sprintf(QR_REMOTE_SERVICE, $encoded);
+    $encoded = rawurlencode($code);
+    $lastException = null;
+    $lastServiceUrl = null;
 
-    $imageData = downloadQrImage($url);
-    if ($imageData === '') {
-        throw new RuntimeException('No se pudo generar el código QR.');
+    foreach (QR_REMOTE_SERVICES as $service) {
+        $url = sprintf($service, $encoded);
+        $lastServiceUrl = $url;
+
+        try {
+            $imageData = downloadQrImage($url);
+        } catch (RuntimeException $exception) {
+            $lastException = $exception;
+            continue;
+        }
+
+        if ($imageData !== '') {
+            $filename = 'qr_' . preg_replace('/[^A-Za-z0-9]/', '', $code) . '_' . time() . '.png';
+            $path = QR_DIR . '/' . $filename;
+
+            if (file_put_contents($path, $imageData) === false) {
+                throw new RuntimeException('No se pudo guardar el código QR generado.');
+            }
+
+            return $filename;
+        }
     }
 
-    $filename = 'qr_' . preg_replace('/[^A-Za-z0-9]/', '', $code) . '_' . time() . '.png';
-    $path = QR_DIR . '/' . $filename;
-
-    if (file_put_contents($path, $imageData) === false) {
-        throw new RuntimeException('No se pudo guardar el código QR generado.');
+    $message = 'No se pudo generar el código QR.';
+    if ($lastException !== null) {
+        $message .= ' ' . $lastException->getMessage();
+    }
+    if ($lastServiceUrl !== null) {
+        $message .= ' (Servicio: ' . $lastServiceUrl . ')';
     }
 
-    return $filename;
+    throw new RuntimeException($message);
 }
 
 function registrationExists(string $email): bool

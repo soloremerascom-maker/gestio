@@ -29,7 +29,7 @@ Este proyecto implementa un flujo completo de registro y control de acceso para 
 
 - Servidor con PHP 8+.
 - Extensión `openssl` habilitada para `random_bytes`.
-- Conectividad saliente para generar códigos QR mediante la API de Google Charts.
+- Conectividad saliente para generar códigos QR (el sistema probará automáticamente múltiples servicios públicos).
 - Permisos de escritura en las carpetas `data/` y `qrcodes/`.
 
 ## Descarga
