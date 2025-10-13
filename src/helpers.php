@@ -4,6 +4,8 @@ const CSV_FILE = STORAGE_DIR . '/registrations.csv';
 const QR_DIR = __DIR__ . '/../qrcodes';
 const SPECIAL_TEST_EMAIL = 'angel.barrios@solodeportes.com';
 
+const QR_REMOTE_SERVICE = 'https://chart.googleapis.com/chart?cht=qr&chs=400x400&chl=%s&chld=H|1';
+
 function ensureStorage(): void
 {
     if (!is_dir(STORAGE_DIR)) {
@@ -122,17 +124,68 @@ function generateOfflineCode(): string
     return strtoupper(bin2hex(random_bytes(4))) . '-' . random_int(1000, 9999);
 }
 
+function downloadQrImage(string $url): string
+{
+    $context = stream_context_create([
+        'http' => ['timeout' => 10],
+        'https' => ['timeout' => 10],
+    ]);
+
+    $imageData = @file_get_contents($url, false, $context);
+    if ($imageData !== false) {
+        return $imageData;
+    }
+
+    if (!function_exists('curl_init')) {
+        throw new RuntimeException('No se pudo descargar el código QR del servicio remoto (cURL no disponible).');
+    }
+
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CONNECTTIMEOUT => 10,
+        CURLOPT_TIMEOUT => 20,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_FAILONERROR => true,
+        CURLOPT_USERAGENT => 'GestioQR/1.0',
+    ]);
+
+    $imageData = curl_exec($ch);
+    if ($imageData === false) {
+        $error = curl_error($ch);
+        curl_close($ch);
+        throw new RuntimeException('No se pudo generar el código QR: ' . ($error ?: 'error desconocido'));
+    }
+
+    $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($statusCode >= 400) {
+        throw new RuntimeException('No se pudo generar el código QR (HTTP ' . $statusCode . ').');
+    }
+
+    return $imageData;
+}
+
 function generateQrCode(string $code): string
 {
+    ensureStorage();
+
     $encoded = urlencode($code);
-    $url = "https://chart.googleapis.com/chart?cht=qr&chs=400x400&chl={$encoded}&chld=H|1";
-    $imageData = file_get_contents($url);
-    if ($imageData === false) {
+    $url = sprintf(QR_REMOTE_SERVICE, $encoded);
+
+    $imageData = downloadQrImage($url);
+    if ($imageData === '') {
         throw new RuntimeException('No se pudo generar el código QR.');
     }
+
     $filename = 'qr_' . preg_replace('/[^A-Za-z0-9]/', '', $code) . '_' . time() . '.png';
     $path = QR_DIR . '/' . $filename;
-    file_put_contents($path, $imageData);
+
+    if (file_put_contents($path, $imageData) === false) {
+        throw new RuntimeException('No se pudo guardar el código QR generado.');
+    }
+
     return $filename;
 }
 
