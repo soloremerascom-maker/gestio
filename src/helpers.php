@@ -13,6 +13,38 @@ const CSV_DELIMITER = ',';
 const CSV_ENCLOSURE = '"';
 const CSV_ESCAPE = '\\';
 
+function getPublicBaseUrl(): string
+{
+    $scheme = 'http';
+    if (!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off') {
+        $scheme = 'https';
+    }
+
+    $host = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? 'localhost');
+    $port = $_SERVER['SERVER_PORT'] ?? '';
+    $port = is_string($port) ? $port : (string) $port;
+
+    $isDefaultPort = ($scheme === 'https' && $port === '443') || ($scheme === 'http' && $port === '80');
+    if ($port !== '' && !$isDefaultPort && strpos($host, ':') === false) {
+        $host .= ':' . $port;
+    }
+
+    $documentRoot = $_SERVER['DOCUMENT_ROOT'] ?? '';
+    $relative = '';
+    if ($documentRoot !== '') {
+        $documentRootReal = realpath($documentRoot);
+        $projectRootReal = realpath(__DIR__ . '/..');
+        if ($documentRootReal !== false && $projectRootReal !== false && strpos($projectRootReal, $documentRootReal) === 0) {
+            $relative = trim(str_replace('\\', '/', substr($projectRootReal, strlen($documentRootReal))), '/');
+            if ($relative !== '') {
+                $relative .= '/';
+            }
+        }
+    }
+
+    return rtrim($scheme . '://' . $host . '/' . $relative, '/') . '/';
+}
+
 function ensureStorage(): void
 {
     if (!is_dir(STORAGE_DIR)) {
@@ -239,7 +271,7 @@ function buildEmailBody(array $context, string $qrPath, string $qrCodeText): str
 {
     $templatePath = __DIR__ . '/../templates/email_template.html';
     if (!file_exists($templatePath)) {
-        $template = '<h1>Tu invitación está lista</h1><p>Hola {{first_name}},</p><p>Mostrá este código en la entrada:</p><p><img src="cid:qrImage" alt="Código QR"></p><p>Código de respaldo: <strong>{{offline_code}}</strong></p>';
+        $template = '<h1>Tu invitación está lista</h1><p>Hola {{first_name}},</p><p>Mostrá este código en la entrada:</p><p>{{qr_image_inline}}</p><p><a href="{{qr_download_link}}">Descargar QR</a></p><p>Código de respaldo: <strong>{{offline_code}}</strong></p>';
     } else {
         $template = file_get_contents($templatePath);
     }
@@ -260,16 +292,24 @@ function buildEmailBody(array $context, string $qrPath, string $qrCodeText): str
     $html = strtr($template, $replacements);
 
     $qrFullPath = QR_DIR . '/' . $qrPath;
-    $qrData = base64_encode(file_get_contents($qrFullPath));
-    $imgTag = '<img src="data:image/png;base64,' . $qrData . '" alt="Código QR" style="max-width:300px;width:100%;height:auto;border-radius:16px;">';
+    $qrRaw = @file_get_contents($qrFullPath);
+    $imgTag = '<p style="margin:0;color:#ef4444;font-size:14px;">No se pudo adjuntar el QR. Descargalo con el botón.</p>';
 
-    return str_replace('{{qr_image_inline}}', $imgTag, $html);
+    if ($qrRaw !== false) {
+        $qrData = base64_encode($qrRaw);
+        $imgTag = '<img src="data:image/png;base64,' . $qrData . '" alt="Código QR" style="max-width:300px;width:100%;height:auto;border-radius:16px;">';
+    }
+
+    $downloadLink = getPublicBaseUrl() . 'qrcodes/' . rawurlencode($qrPath);
+
+    $html = str_replace('{{qr_image_inline}}', $imgTag, $html);
+    return str_replace('{{qr_download_link}}', htmlspecialchars($downloadLink, ENT_QUOTES, 'UTF-8'), $html);
 }
 
 function sendQrEmail(array $context, string $qrPath, string $qrCodeText): void
 {
     $to = $context['email'];
-    $subject = 'Tu acceso a Fiesta Exclusiva 2025';
+    $subject = '🎉 Entrada evento Fin de Año Solo Deportes 2025 🎟️';
     $headers = [];
     $headers[] = 'MIME-Version: 1.0';
     $headers[] = 'Content-type: text/html; charset=utf-8';
