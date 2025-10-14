@@ -21,7 +21,7 @@ No requiere Node, Composer ni frameworks adicionales.
    <?php
    define('DASH_SCOPE_API_KEY', 'TU_CLAVE_DASHSCOPE');
    ```
-   También puedes usar la variable de entorno `DASHSCOPE_API_KEY` si tu hosting lo permite.
+   También puedes usar las variables de entorno `DASH_SCOPE_API_KEY` o `DASHSCOPE_API_KEY` si tu hosting lo permite.
 3. Asegúrate de que la carpeta `public/uploads` tenga permisos de escritura si planeas guardar imágenes (por defecto solo se usan temporalmente).
 
 ## Uso

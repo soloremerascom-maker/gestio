@@ -5,7 +5,7 @@
  */
 
 const DASH_SCOPE_API_ENDPOINT = 'https://dashscope-intl.aliyuncs.com/api/v1';
-const DASH_SCOPE_API_KEY_ENV = 'DASHSCOPE_API_KEY';
+const DASH_SCOPE_API_KEY_ENV_NAMES = ['DASH_SCOPE_API_KEY', 'DASHSCOPE_API_KEY'];
 
 // Models
 const DASH_SCOPE_MODEL_T2V = 'wanx-v1-t2v';
@@ -22,12 +22,14 @@ function dashscope_get_api_key(): string
         return DASH_SCOPE_API_KEY;
     }
 
-    $envValue = getenv(DASH_SCOPE_API_KEY_ENV);
-    if ($envValue) {
-        return $envValue;
+    foreach (DASH_SCOPE_API_KEY_ENV_NAMES as $envName) {
+        $envValue = getenv($envName);
+        if ($envValue) {
+            return $envValue;
+        }
     }
 
-    throw new RuntimeException('DashScope API key is not configured. Set DASH_SCOPE_API_KEY in api/config.php or DASHSCOPE_API_KEY env variable.');
+    throw new RuntimeException('DashScope API key is not configured. Define DASH_SCOPE_API_KEY in api/config.php or set the DASH_SCOPE_API_KEY/DASHSCOPE_API_KEY environment variable.');
 }
 
 /**
