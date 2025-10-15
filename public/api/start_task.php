@@ -1,10 +1,7 @@
 <?php
 declare(strict_types=1);
 
-$maybeConfig = __DIR__ . '/config.php';
-if (file_exists($maybeConfig)) {
-    require_once $maybeConfig;
-}
+require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/dashscope_client.php';
 
 header('Content-Type: application/json');

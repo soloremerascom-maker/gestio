@@ -4,6 +4,8 @@
  * Update DASH_SCOPE_API_KEY in the generated config.php or via environment variable.
  */
 
+require_once __DIR__ . '/bootstrap.php';
+
 const DASH_SCOPE_API_ENDPOINT = 'https://dashscope-intl.aliyuncs.com/api/v1';
 const DASH_SCOPE_API_KEY_ENV_NAMES = ['DASH_SCOPE_API_KEY', 'DASHSCOPE_API_KEY'];
 
@@ -18,8 +20,11 @@ const DASH_SCOPE_MODEL_CHAT = 'qwen-max';
  */
 function dashscope_get_api_key(): string
 {
-    if (defined('DASH_SCOPE_API_KEY') && DASH_SCOPE_API_KEY) {
-        return DASH_SCOPE_API_KEY;
+    if (defined('DASH_SCOPE_API_KEY')) {
+        $constant = trim((string) DASH_SCOPE_API_KEY);
+        if ($constant !== '' && strcasecmp($constant, 'YOUR_DASHSCOPE_API_KEY_HERE') !== 0) {
+            return $constant;
+        }
     }
 
     foreach (DASH_SCOPE_API_KEY_ENV_NAMES as $envName) {
