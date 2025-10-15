@@ -20,10 +20,40 @@ const DASH_SCOPE_MODEL_CHAT = 'qwen-max';
  */
 function dashscope_get_api_key(): string
 {
+    $normalise = static function ($value): ?string {
+        if (!is_string($value)) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+        if ($trimmed === '' || strcasecmp($trimmed, 'YOUR_DASHSCOPE_API_KEY_HERE') === 0) {
+            return null;
+        }
+
+        return $trimmed;
+    };
+
     if (defined('DASH_SCOPE_API_KEY')) {
-        $constant = trim((string) DASH_SCOPE_API_KEY);
-        if ($constant !== '' && strcasecmp($constant, 'YOUR_DASHSCOPE_API_KEY_HERE') !== 0) {
+        $constant = $normalise((string) DASH_SCOPE_API_KEY);
+        if ($constant !== null) {
             return $constant;
+        }
+    }
+
+    $globalSources = [
+        $GLOBALS['DASH_SCOPE_API_KEY'] ?? null,
+        $GLOBALS['dash_scope_api_key'] ?? null,
+    ];
+
+    if (isset($GLOBALS['config']) && is_array($GLOBALS['config'])) {
+        $globalSources[] = $GLOBALS['config']['DASH_SCOPE_API_KEY'] ?? null;
+        $globalSources[] = $GLOBALS['config']['dash_scope_api_key'] ?? null;
+    }
+
+    foreach ($globalSources as $value) {
+        $candidate = $normalise($value);
+        if ($candidate !== null) {
+            return $candidate;
         }
     }
 
@@ -35,16 +65,14 @@ function dashscope_get_api_key(): string
         ];
 
         foreach ($sources as $value) {
-            if (is_string($value)) {
-                $trimmed = trim($value);
-                if ($trimmed !== '') {
-                    return $trimmed;
-                }
+            $candidate = $normalise($value);
+            if ($candidate !== null) {
+                return $candidate;
             }
         }
     }
 
-    throw new RuntimeException('DashScope API key is not configured. Define DASH_SCOPE_API_KEY in api/config.php or set the DASH_SCOPE_API_KEY/DASHSCOPE_API_KEY environment variable.');
+    throw new RuntimeException('DashScope API key is not configured. Define DASH_SCOPE_API_KEY (o una variable $DASH_SCOPE_API_KEY) en api/config.php o configura las variables de entorno DASH_SCOPE_API_KEY/DASHSCOPE_API_KEY.');
 }
 
 /**
