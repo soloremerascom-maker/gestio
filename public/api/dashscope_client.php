@@ -23,9 +23,19 @@ function dashscope_get_api_key(): string
     }
 
     foreach (DASH_SCOPE_API_KEY_ENV_NAMES as $envName) {
-        $envValue = getenv($envName);
-        if ($envValue) {
-            return $envValue;
+        $sources = [
+            getenv($envName),
+            $_ENV[$envName] ?? null,
+            $_SERVER[$envName] ?? null,
+        ];
+
+        foreach ($sources as $value) {
+            if (is_string($value)) {
+                $trimmed = trim($value);
+                if ($trimmed !== '') {
+                    return $trimmed;
+                }
+            }
         }
     }
 
