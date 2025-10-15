@@ -116,17 +116,46 @@ function dashscope_request(string $method, string $path, ?array $body = null, ar
     $statusCode = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
     curl_close($ch);
 
-    $decoded = json_decode($response, true);
+    $trimmedResponse = trim((string) $response);
+    $decoded = null;
+
+    if ($trimmedResponse === '') {
+        $decoded = [];
+    } else {
+        $decoded = json_decode($response, true);
+    }
+
     if ($decoded === null && json_last_error() !== JSON_ERROR_NONE) {
-        throw new RuntimeException('Failed to decode API response: ' . json_last_error_msg());
+        $preview = substr(preg_replace('/\s+/', ' ', $trimmedResponse), 0, 200);
+        $baseMessage = 'Failed to decode API response (HTTP ' . $statusCode . '): ' . json_last_error_msg();
+
+        if ($statusCode >= 400) {
+            $errorMessage = $baseMessage;
+            if ($preview !== '') {
+                $errorMessage .= ' - cuerpo devuelto: ' . $preview;
+            }
+
+            throw new RuntimeException($errorMessage, $statusCode);
+        }
+
+        $extra = $preview !== '' ? ' Respuesta: ' . $preview : '';
+        throw new RuntimeException($baseMessage . $extra);
     }
 
     if ($statusCode >= 400) {
-        $message = $decoded['message'] ?? ('HTTP ' . $statusCode);
+        $message = is_array($decoded) ? ($decoded['message'] ?? ('HTTP ' . $statusCode)) : ('HTTP ' . $statusCode);
+
+        if (!is_array($decoded)) {
+            $preview = substr(preg_replace('/\s+/', ' ', $trimmedResponse), 0, 200);
+            if ($preview !== '') {
+                $message .= ' - cuerpo devuelto: ' . $preview;
+            }
+        }
+
         throw new RuntimeException('DashScope API error: ' . $message, $statusCode);
     }
 
-    return $decoded;
+    return $decoded ?? [];
 }
 
 /**
