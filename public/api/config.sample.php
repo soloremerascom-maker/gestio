@@ -17,3 +17,7 @@ if (!defined('DASH_SCOPE_API_KEY')) {
 //     'services/aigc/video-generation/tasks/%s',
 //     'services/aigc/video-generation/tasks?task_id=%s',
 // ];
+
+// Opcional: redefine los modelos WAN si recibes "Model not exist" (acepta string o arreglo).
+// $DASH_SCOPE_MODEL_T2V = ['wanx-v1.1-t2v', 'wanx-v1-t2v'];
+// $DASH_SCOPE_MODEL_I2V = 'wanx-v1.2-i2v';

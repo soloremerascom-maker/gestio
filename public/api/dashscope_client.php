@@ -173,6 +173,60 @@ function dashscope_collect_paths(string $configKey, array $defaults): array
 }
 
 /**
+ * Merge configured scalar values with defaults, giving precedence to configured values.
+ *
+ * @param string             $configKey
+ * @param array<int, string> $defaults
+ * @return array<int, string>
+ */
+function dashscope_collect_values(string $configKey, array $defaults): array
+{
+    $configured = dashscope_config_value($configKey);
+
+    if ($configured === null) {
+        return $defaults;
+    }
+
+    if (!is_array($configured)) {
+        $configured = [$configured];
+    }
+
+    $normalised = [];
+
+    foreach ($configured as $value) {
+        if (!is_string($value)) {
+            continue;
+        }
+
+        $trimmed = trim($value);
+
+        if ($trimmed === '') {
+            continue;
+        }
+
+        $normalised[] = $trimmed;
+    }
+
+    if ($normalised === []) {
+        return $defaults;
+    }
+
+    return array_values(array_unique(array_merge($normalised, $defaults)));
+}
+
+/**
+ * Detect if the exception was caused by an invalid or missing model.
+ */
+function dashscope_is_missing_model_error(Throwable $exception): bool
+{
+    $message = $exception->getMessage();
+
+    return stripos($message, 'model not exist') !== false
+        || stripos($message, 'model not found') !== false
+        || stripos($message, 'invalid model') !== false;
+}
+
+/**
  * Perform HTTP request to DashScope.
  */
 function dashscope_request(string $method, string $path, ?array $body = null, array $headers = []): array
@@ -264,15 +318,22 @@ function dashscope_request(string $method, string $path, ?array $body = null, ar
  */
 function dashscope_start_video_task(string $mode, array $payload): array
 {
-    $model = $mode === 'i2v' ? DASH_SCOPE_MODEL_I2V : DASH_SCOPE_MODEL_T2V;
-
-    $body = [
-        'model' => $model,
-        'input' => $payload,
-        'parameters' => [
-            'mode' => $mode
+    $defaultModels = $mode === 'i2v'
+        ? [
+            DASH_SCOPE_MODEL_I2V,
+            'wanx-v1.1-i2v',
+            'wanx-v1.2-i2v',
+            'wan-v1-i2v',
         ]
-    ];
+        : [
+            DASH_SCOPE_MODEL_T2V,
+            'wanx-v1.1-t2v',
+            'wanx-v1.2-t2v',
+            'wan-v1-t2v',
+        ];
+
+    $modelKey = $mode === 'i2v' ? 'DASH_SCOPE_MODEL_I2V' : 'DASH_SCOPE_MODEL_T2V';
+    $models = dashscope_collect_values($modelKey, $defaultModels);
 
     $paths = dashscope_collect_paths('DASH_SCOPE_VIDEO_TASK_CREATE_PATHS', [
         'videos',
@@ -282,15 +343,25 @@ function dashscope_start_video_task(string $mode, array $payload): array
 
     $lastException = null;
 
-    foreach ($paths as $path) {
-        try {
-            return dashscope_request('POST', $path, $body);
-        } catch (RuntimeException $e) {
-            if ($e->getCode() !== 404) {
-                throw $e;
-            }
+    foreach ($models as $model) {
+        $body = [
+            'model' => $model,
+            'input' => $payload,
+            'parameters' => [
+                'mode' => $mode,
+            ]
+        ];
 
-            $lastException = $e;
+        foreach ($paths as $path) {
+            try {
+                return dashscope_request('POST', $path, $body);
+            } catch (RuntimeException $e) {
+                if ($e->getCode() !== 404 && !dashscope_is_missing_model_error($e)) {
+                    throw $e;
+                }
+
+                $lastException = $e;
+            }
         }
     }
 

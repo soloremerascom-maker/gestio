@@ -33,6 +33,13 @@ No requiere Node, Composer ni frameworks adicionales.
    Cuando recibas errores 404 de la API es probable que tu cuenta use rutas distintas; en ese caso descomenta y ajusta en `config.php`
    la constante `DASH_SCOPE_API_ENDPOINT` y las listas `$DASH_SCOPE_VIDEO_TASK_CREATE_PATHS` / `$DASH_SCOPE_VIDEO_TASK_STATUS_PATHS`
    para que apunten a los endpoints reales que te indique la documentación de tu región.
+   Si la API responde `Model not exist` o mensajes parecidos, redefine `DASH_SCOPE_MODEL_T2V` y/o `DASH_SCOPE_MODEL_I2V` en `config.php`.
+   Puedes asignar un string con el modelo correcto o un arreglo con varios candidatos, por ejemplo:
+   ```php
+   <?php
+   $DASH_SCOPE_MODEL_T2V = ['wanx-v1.1-t2v', 'wanx-v1-t2v'];
+   $DASH_SCOPE_MODEL_I2V = 'wanx-v1.2-i2v';
+   ```
 3. Asegúrate de que la carpeta `public/uploads` tenga permisos de escritura si planeas guardar imágenes (por defecto solo se usan temporalmente).
 
 ## Uso
