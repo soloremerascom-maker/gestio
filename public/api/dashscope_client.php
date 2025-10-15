@@ -1,0 +1,437 @@
+<?php
+/**
+ * Simple DashScope International client wrapper for shared hosting.
+ * Update DASH_SCOPE_API_KEY in the generated config.php or via environment variable.
+ */
+
+require_once __DIR__ . '/bootstrap.php';
+
+const DASH_SCOPE_API_KEY_ENV_NAMES = ['DASH_SCOPE_API_KEY', 'DASHSCOPE_API_KEY'];
+
+if (!function_exists('dashscope_config_value')) {
+    /**
+     * Fetch configuration value from constants, globals or config arrays.
+     *
+     * @param string $name    Configuration key (case sensitive)
+     * @param mixed  $default Default value when not configured
+     *
+     * @return mixed
+     */
+    function dashscope_config_value(string $name, $default = null)
+    {
+        if (defined($name)) {
+            return constant($name);
+        }
+
+        if (array_key_exists($name, $GLOBALS ?? [])) {
+            return $GLOBALS[$name];
+        }
+
+        if (array_key_exists(strtolower($name), $GLOBALS ?? [])) {
+            return $GLOBALS[strtolower($name)];
+        }
+
+        if (isset($GLOBALS['config']) && is_array($GLOBALS['config'])) {
+            if (array_key_exists($name, $GLOBALS['config'])) {
+                return $GLOBALS['config'][$name];
+            }
+
+            if (array_key_exists(strtolower($name), $GLOBALS['config'])) {
+                return $GLOBALS['config'][strtolower($name)];
+            }
+        }
+
+        return $default;
+    }
+}
+
+$configuredEndpoint = dashscope_config_value('DASH_SCOPE_API_ENDPOINT', 'https://dashscope-intl.aliyuncs.com/api/v1');
+
+if (!defined('DASH_SCOPE_API_ENDPOINT')) {
+    if (!is_string($configuredEndpoint) || trim($configuredEndpoint) === '') {
+        $configuredEndpoint = 'https://dashscope-intl.aliyuncs.com/api/v1';
+    }
+
+    define('DASH_SCOPE_API_ENDPOINT', rtrim($configuredEndpoint, '/'));
+}
+
+// Models
+const DASH_SCOPE_MODEL_T2V = 'wanx-v1-t2v';
+const DASH_SCOPE_MODEL_I2V = 'wanx-v1-i2v';
+const DASH_SCOPE_MODEL_CHAT = 'qwen-max';
+
+/**
+ * Load API key from config or environment.
+ * Shared hosting friendly: use config.php to set constant.
+ */
+function dashscope_get_api_key(): string
+{
+    $normalise = static function ($value): ?string {
+        if (!is_string($value)) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+        if ($trimmed === '' || strcasecmp($trimmed, 'YOUR_DASHSCOPE_API_KEY_HERE') === 0) {
+            return null;
+        }
+
+        return $trimmed;
+    };
+
+    if (defined('DASH_SCOPE_API_KEY')) {
+        $constant = $normalise((string) DASH_SCOPE_API_KEY);
+        if ($constant !== null) {
+            return $constant;
+        }
+    }
+
+    $globalSources = [
+        $GLOBALS['DASH_SCOPE_API_KEY'] ?? null,
+        $GLOBALS['dash_scope_api_key'] ?? null,
+    ];
+
+    if (isset($GLOBALS['config']) && is_array($GLOBALS['config'])) {
+        $globalSources[] = $GLOBALS['config']['DASH_SCOPE_API_KEY'] ?? null;
+        $globalSources[] = $GLOBALS['config']['dash_scope_api_key'] ?? null;
+    }
+
+    foreach ($globalSources as $value) {
+        $candidate = $normalise($value);
+        if ($candidate !== null) {
+            return $candidate;
+        }
+    }
+
+    foreach (DASH_SCOPE_API_KEY_ENV_NAMES as $envName) {
+        $sources = [
+            getenv($envName),
+            $_ENV[$envName] ?? null,
+            $_SERVER[$envName] ?? null,
+        ];
+
+        foreach ($sources as $value) {
+            $candidate = $normalise($value);
+            if ($candidate !== null) {
+                return $candidate;
+            }
+        }
+    }
+
+    throw new RuntimeException('DashScope API key is not configured. Define DASH_SCOPE_API_KEY (o una variable $DASH_SCOPE_API_KEY) en api/config.php o configura las variables de entorno DASH_SCOPE_API_KEY/DASHSCOPE_API_KEY.');
+}
+
+/**
+ * Normalise a list of API path overrides.
+ *
+ * @param mixed $value
+ * @return array<int, string>
+ */
+function dashscope_normalise_path_list($value): array
+{
+    if (is_string($value)) {
+        $value = [$value];
+    }
+
+    if (!is_array($value)) {
+        return [];
+    }
+
+    $normalised = [];
+    foreach ($value as $path) {
+        if (!is_string($path)) {
+            continue;
+        }
+
+        $trimmed = trim($path);
+        if ($trimmed === '') {
+            continue;
+        }
+
+        $normalised[] = ltrim($trimmed, '/');
+    }
+
+    return array_values(array_unique($normalised));
+}
+
+/**
+ * Merge configured path list with defaults, giving precedence to configured values.
+ *
+ * @param string               $configKey
+ * @param array<int, string>   $defaults
+ * @return array<int, string>
+ */
+function dashscope_collect_paths(string $configKey, array $defaults): array
+{
+    $configured = dashscope_normalise_path_list(dashscope_config_value($configKey));
+
+    if ($configured === []) {
+        return $defaults;
+    }
+
+    return array_values(array_unique(array_merge($configured, $defaults)));
+}
+
+/**
+ * Merge configured scalar values with defaults, giving precedence to configured values.
+ *
+ * @param string             $configKey
+ * @param array<int, string> $defaults
+ * @return array<int, string>
+ */
+function dashscope_collect_values(string $configKey, array $defaults): array
+{
+    $configured = dashscope_config_value($configKey);
+
+    if ($configured === null) {
+        return $defaults;
+    }
+
+    if (!is_array($configured)) {
+        $configured = [$configured];
+    }
+
+    $normalised = [];
+
+    foreach ($configured as $value) {
+        if (!is_string($value)) {
+            continue;
+        }
+
+        $trimmed = trim($value);
+
+        if ($trimmed === '') {
+            continue;
+        }
+
+        $normalised[] = $trimmed;
+    }
+
+    if ($normalised === []) {
+        return $defaults;
+    }
+
+    return array_values(array_unique(array_merge($normalised, $defaults)));
+}
+
+/**
+ * Detect if the exception was caused by an invalid or missing model.
+ */
+function dashscope_is_missing_model_error(Throwable $exception): bool
+{
+    $message = $exception->getMessage();
+
+    return stripos($message, 'model not exist') !== false
+        || stripos($message, 'model not found') !== false
+        || stripos($message, 'invalid model') !== false;
+}
+
+/**
+ * Perform HTTP request to DashScope.
+ */
+function dashscope_request(string $method, string $path, ?array $body = null, array $headers = []): array
+{
+    $url = rtrim(DASH_SCOPE_API_ENDPOINT, '/') . '/' . ltrim($path, '/');
+    $ch = curl_init($url);
+    $defaultHeaders = [
+        'Authorization: Bearer ' . dashscope_get_api_key(),
+        'Content-Type: application/json'
+    ];
+
+    $payload = null;
+    if ($body !== null) {
+        $payload = json_encode($body);
+        if ($payload === false) {
+            throw new RuntimeException('Failed to encode request body.');
+        }
+    }
+
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CUSTOMREQUEST => strtoupper($method),
+        CURLOPT_HTTPHEADER => array_merge($defaultHeaders, $headers),
+        CURLOPT_TIMEOUT => 120,
+    ]);
+
+    if ($payload !== null) {
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+    }
+
+    $response = curl_exec($ch);
+    if ($response === false) {
+        $err = curl_error($ch);
+        curl_close($ch);
+        throw new RuntimeException('CURL error: ' . $err);
+    }
+
+    $statusCode = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    curl_close($ch);
+
+    $trimmedResponse = trim((string) $response);
+    $decoded = null;
+
+    if ($trimmedResponse === '') {
+        $decoded = [];
+    } else {
+        $decoded = json_decode($response, true);
+    }
+
+    if ($decoded === null && json_last_error() !== JSON_ERROR_NONE) {
+        $preview = substr(preg_replace('/\s+/', ' ', $trimmedResponse), 0, 200);
+        $baseMessage = 'Failed to decode API response (HTTP ' . $statusCode . '): ' . json_last_error_msg();
+
+        if ($statusCode >= 400) {
+            $errorMessage = $baseMessage;
+            if ($preview !== '') {
+                $errorMessage .= ' - cuerpo devuelto: ' . $preview;
+            }
+
+            throw new RuntimeException($errorMessage, $statusCode);
+        }
+
+        $extra = $preview !== '' ? ' Respuesta: ' . $preview : '';
+        throw new RuntimeException($baseMessage . $extra);
+    }
+
+    if ($statusCode >= 400) {
+        $message = is_array($decoded) ? ($decoded['message'] ?? ('HTTP ' . $statusCode)) : ('HTTP ' . $statusCode);
+
+        if (!is_array($decoded)) {
+            $preview = substr(preg_replace('/\s+/', ' ', $trimmedResponse), 0, 200);
+            if ($preview !== '') {
+                $message .= ' - cuerpo devuelto: ' . $preview;
+            }
+        }
+
+        throw new RuntimeException('DashScope API error: ' . $message, $statusCode);
+    }
+
+    return $decoded ?? [];
+}
+
+/**
+ * Start an asynchronous video generation task.
+ *
+ * @param string $mode Either 't2v' or 'i2v'
+ * @param array $payload Additional payload keys depending on the mode
+ * @return array
+ */
+function dashscope_start_video_task(string $mode, array $payload): array
+{
+    $defaultModels = $mode === 'i2v'
+        ? [
+            DASH_SCOPE_MODEL_I2V,
+            'wanx-v1.1-i2v',
+            'wanx-v1.2-i2v',
+            'wan-v1-i2v',
+        ]
+        : [
+            DASH_SCOPE_MODEL_T2V,
+            'wanx-v1.1-t2v',
+            'wanx-v1.2-t2v',
+            'wan-v1-t2v',
+        ];
+
+    $modelKey = $mode === 'i2v' ? 'DASH_SCOPE_MODEL_I2V' : 'DASH_SCOPE_MODEL_T2V';
+    $models = dashscope_collect_values($modelKey, $defaultModels);
+
+    $paths = dashscope_collect_paths('DASH_SCOPE_VIDEO_TASK_CREATE_PATHS', [
+        'videos',
+        'videos/tasks',
+        'services/aigc/video-generation/tasks',
+    ]);
+
+    $lastException = null;
+
+    foreach ($models as $model) {
+        $body = [
+            'model' => $model,
+            'input' => $payload,
+            'parameters' => [
+                'mode' => $mode,
+            ]
+        ];
+
+        foreach ($paths as $path) {
+            try {
+                return dashscope_request('POST', $path, $body);
+            } catch (RuntimeException $e) {
+                if ($e->getCode() !== 404 && !dashscope_is_missing_model_error($e)) {
+                    throw $e;
+                }
+
+                $lastException = $e;
+            }
+        }
+    }
+
+    if ($lastException !== null) {
+        throw $lastException;
+    }
+
+    throw new RuntimeException('DashScope API error: no se pudo crear la tarea de video.');
+}
+
+/**
+ * Retrieve asynchronous task status.
+ */
+function dashscope_get_task(string $taskId): array
+{
+    $taskId = trim($taskId);
+    if ($taskId === '') {
+        throw new InvalidArgumentException('El taskId está vacío.');
+    }
+
+    $paths = dashscope_collect_paths('DASH_SCOPE_VIDEO_TASK_STATUS_PATHS', [
+        'videos/%s',
+        'videos/tasks/%s',
+        'videos/tasks?taskId=%s',
+        'videos/tasks?task_id=%s',
+        'videos?taskId=%s',
+        'videos?task_id=%s',
+        'services/aigc/video-generation/tasks/%s',
+        'services/aigc/video-generation/tasks?taskId=%s',
+        'services/aigc/video-generation/tasks?task_id=%s',
+    ]);
+
+    $encodedId = rawurlencode($taskId);
+    $lastException = null;
+
+    foreach ($paths as $pathTemplate) {
+        $path = strpos($pathTemplate, '%s') !== false ? sprintf($pathTemplate, $encodedId) : rtrim($pathTemplate, '/') . '/' . $encodedId;
+
+        try {
+            return dashscope_request('GET', $path);
+        } catch (RuntimeException $e) {
+            if ($e->getCode() !== 404) {
+                throw $e;
+            }
+
+            $lastException = $e;
+        }
+    }
+
+    if ($lastException !== null) {
+        throw $lastException;
+    }
+
+    throw new RuntimeException('DashScope API error: no se encontró la tarea solicitada.');
+}
+
+/**
+ * Execute a synchronous chat completion request using Qwen.
+ */
+function dashscope_chat(string $prompt, ?string $systemPrompt = null): array
+{
+    $body = [
+        'model' => DASH_SCOPE_MODEL_CHAT,
+        'input' => [
+            'messages' => array_values(array_filter([
+                $systemPrompt ? ['role' => 'system', 'content' => $systemPrompt] : null,
+                ['role' => 'user', 'content' => $prompt]
+            ]))
+        ]
+    ];
+
+    return dashscope_request('POST', 'chat/completions', $body);
+}
