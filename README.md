@@ -30,6 +30,9 @@ No requiere Node, Composer ni frameworks adicionales.
    aplicación cargará ambos archivos siempre que el valor no sea el texto por defecto. También puedes usar las variables de entorno
    `DASH_SCOPE_API_KEY` o `DASHSCOPE_API_KEY` si tu hosting lo permite; la aplicación las buscará automáticamente tanto en `getenv()`
    como en los arreglos `$_ENV` y `$_SERVER`.
+   Cuando recibas errores 404 de la API es probable que tu cuenta use rutas distintas; en ese caso descomenta y ajusta en `config.php`
+   la constante `DASH_SCOPE_API_ENDPOINT` y las listas `$DASH_SCOPE_VIDEO_TASK_CREATE_PATHS` / `$DASH_SCOPE_VIDEO_TASK_STATUS_PATHS`
+   para que apunten a los endpoints reales que te indique la documentación de tu región.
 3. Asegúrate de que la carpeta `public/uploads` tenga permisos de escritura si planeas guardar imágenes (por defecto solo se usan temporalmente).
 
 ## Uso

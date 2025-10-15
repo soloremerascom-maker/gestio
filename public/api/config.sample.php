@@ -5,3 +5,15 @@
 if (!defined('DASH_SCOPE_API_KEY')) {
     define('DASH_SCOPE_API_KEY', 'YOUR_DASHSCOPE_API_KEY_HERE');
 }
+
+// Opcional: descomenta para forzar otra URL base (por ejemplo, edición China).
+// define('DASH_SCOPE_API_ENDPOINT', 'https://dashscope.aliyuncs.com/api/v1');
+
+// Opcional: redefine rutas para crear o consultar tareas si tu cuenta usa endpoints distintos.
+// $DASH_SCOPE_VIDEO_TASK_CREATE_PATHS = [
+//     'services/aigc/video-generation/tasks',
+// ];
+// $DASH_SCOPE_VIDEO_TASK_STATUS_PATHS = [
+//     'services/aigc/video-generation/tasks/%s',
+//     'services/aigc/video-generation/tasks?task_id=%s',
+// ];

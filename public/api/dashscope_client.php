@@ -6,8 +6,54 @@
 
 require_once __DIR__ . '/bootstrap.php';
 
-const DASH_SCOPE_API_ENDPOINT = 'https://dashscope-intl.aliyuncs.com/api/v1';
 const DASH_SCOPE_API_KEY_ENV_NAMES = ['DASH_SCOPE_API_KEY', 'DASHSCOPE_API_KEY'];
+
+if (!function_exists('dashscope_config_value')) {
+    /**
+     * Fetch configuration value from constants, globals or config arrays.
+     *
+     * @param string $name    Configuration key (case sensitive)
+     * @param mixed  $default Default value when not configured
+     *
+     * @return mixed
+     */
+    function dashscope_config_value(string $name, $default = null)
+    {
+        if (defined($name)) {
+            return constant($name);
+        }
+
+        if (array_key_exists($name, $GLOBALS ?? [])) {
+            return $GLOBALS[$name];
+        }
+
+        if (array_key_exists(strtolower($name), $GLOBALS ?? [])) {
+            return $GLOBALS[strtolower($name)];
+        }
+
+        if (isset($GLOBALS['config']) && is_array($GLOBALS['config'])) {
+            if (array_key_exists($name, $GLOBALS['config'])) {
+                return $GLOBALS['config'][$name];
+            }
+
+            if (array_key_exists(strtolower($name), $GLOBALS['config'])) {
+                return $GLOBALS['config'][strtolower($name)];
+            }
+        }
+
+        return $default;
+    }
+}
+
+$configuredEndpoint = dashscope_config_value('DASH_SCOPE_API_ENDPOINT', 'https://dashscope-intl.aliyuncs.com/api/v1');
+
+if (!defined('DASH_SCOPE_API_ENDPOINT')) {
+    if (!is_string($configuredEndpoint) || trim($configuredEndpoint) === '') {
+        $configuredEndpoint = 'https://dashscope-intl.aliyuncs.com/api/v1';
+    }
+
+    define('DASH_SCOPE_API_ENDPOINT', rtrim($configuredEndpoint, '/'));
+}
 
 // Models
 const DASH_SCOPE_MODEL_T2V = 'wanx-v1-t2v';
@@ -73,6 +119,57 @@ function dashscope_get_api_key(): string
     }
 
     throw new RuntimeException('DashScope API key is not configured. Define DASH_SCOPE_API_KEY (o una variable $DASH_SCOPE_API_KEY) en api/config.php o configura las variables de entorno DASH_SCOPE_API_KEY/DASHSCOPE_API_KEY.');
+}
+
+/**
+ * Normalise a list of API path overrides.
+ *
+ * @param mixed $value
+ * @return array<int, string>
+ */
+function dashscope_normalise_path_list($value): array
+{
+    if (is_string($value)) {
+        $value = [$value];
+    }
+
+    if (!is_array($value)) {
+        return [];
+    }
+
+    $normalised = [];
+    foreach ($value as $path) {
+        if (!is_string($path)) {
+            continue;
+        }
+
+        $trimmed = trim($path);
+        if ($trimmed === '') {
+            continue;
+        }
+
+        $normalised[] = ltrim($trimmed, '/');
+    }
+
+    return array_values(array_unique($normalised));
+}
+
+/**
+ * Merge configured path list with defaults, giving precedence to configured values.
+ *
+ * @param string               $configKey
+ * @param array<int, string>   $defaults
+ * @return array<int, string>
+ */
+function dashscope_collect_paths(string $configKey, array $defaults): array
+{
+    $configured = dashscope_normalise_path_list(dashscope_config_value($configKey));
+
+    if ($configured === []) {
+        return $defaults;
+    }
+
+    return array_values(array_unique(array_merge($configured, $defaults)));
 }
 
 /**
@@ -177,7 +274,31 @@ function dashscope_start_video_task(string $mode, array $payload): array
         ]
     ];
 
-    return dashscope_request('POST', 'videos', $body);
+    $paths = dashscope_collect_paths('DASH_SCOPE_VIDEO_TASK_CREATE_PATHS', [
+        'videos',
+        'videos/tasks',
+        'services/aigc/video-generation/tasks',
+    ]);
+
+    $lastException = null;
+
+    foreach ($paths as $path) {
+        try {
+            return dashscope_request('POST', $path, $body);
+        } catch (RuntimeException $e) {
+            if ($e->getCode() !== 404) {
+                throw $e;
+            }
+
+            $lastException = $e;
+        }
+    }
+
+    if ($lastException !== null) {
+        throw $lastException;
+    }
+
+    throw new RuntimeException('DashScope API error: no se pudo crear la tarea de video.');
 }
 
 /**
@@ -185,7 +306,45 @@ function dashscope_start_video_task(string $mode, array $payload): array
  */
 function dashscope_get_task(string $taskId): array
 {
-    return dashscope_request('GET', 'videos/' . urlencode($taskId));
+    $taskId = trim($taskId);
+    if ($taskId === '') {
+        throw new InvalidArgumentException('El taskId está vacío.');
+    }
+
+    $paths = dashscope_collect_paths('DASH_SCOPE_VIDEO_TASK_STATUS_PATHS', [
+        'videos/%s',
+        'videos/tasks/%s',
+        'videos/tasks?taskId=%s',
+        'videos/tasks?task_id=%s',
+        'videos?taskId=%s',
+        'videos?task_id=%s',
+        'services/aigc/video-generation/tasks/%s',
+        'services/aigc/video-generation/tasks?taskId=%s',
+        'services/aigc/video-generation/tasks?task_id=%s',
+    ]);
+
+    $encodedId = rawurlencode($taskId);
+    $lastException = null;
+
+    foreach ($paths as $pathTemplate) {
+        $path = strpos($pathTemplate, '%s') !== false ? sprintf($pathTemplate, $encodedId) : rtrim($pathTemplate, '/') . '/' . $encodedId;
+
+        try {
+            return dashscope_request('GET', $path);
+        } catch (RuntimeException $e) {
+            if ($e->getCode() !== 404) {
+                throw $e;
+            }
+
+            $lastException = $e;
+        }
+    }
+
+    if ($lastException !== null) {
+        throw $lastException;
+    }
+
+    throw new RuntimeException('DashScope API error: no se encontró la tarea solicitada.');
 }
 
 /**
