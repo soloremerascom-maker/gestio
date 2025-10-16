@@ -3,8 +3,7 @@ require_once __DIR__ . '/lib/helpers.php';
 ensure_session();
 
 if (isset($_SESSION['user'])) {
-    header('Location: /dashboard.php');
-    exit;
+    redirect_to('dashboard.php');
 }
 
 $error = $_GET['error'] ?? null;
@@ -32,7 +31,7 @@ $error = $_GET['error'] ?? null;
         <?php if ($error): ?>
             <div class="error">Credenciales inválidas, intenta nuevamente.</div>
         <?php endif; ?>
-        <form action="/actions/login.php" method="post">
+        <form action="<?php echo htmlspecialchars(app_url('actions/login.php')); ?>" method="post">
             <label for="username">Usuario</label>
             <input type="text" name="username" id="username" required autofocus>
 

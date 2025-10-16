@@ -41,8 +41,7 @@ foreach ($itemsInput as $item) {
 }
 
 if ($client['name'] === '' || $client['email'] === '' || empty($items)) {
-    header('Location: /modules/sales.php?error=1');
-    exit;
+    redirect_to('modules/sales.php?error=1');
 }
 
 $orders = load_orders();
@@ -104,5 +103,4 @@ foreach (SYSTEM_EMAILS as $email) {
 $logEntry = '[' . $now . "] Notificación enviada a " . implode(', ', SYSTEM_EMAILS) . " sobre la orden " . $orderId . "\n";
 file_put_contents(EMAIL_LOG_FILE, $logEntry, FILE_APPEND);
 
-header('Location: /modules/sales.php?success=1');
-exit;
+redirect_to('modules/sales.php?success=1');

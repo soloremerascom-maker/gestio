@@ -36,11 +36,11 @@ $success = $_GET['success'] ?? null;
 <body>
 <header>
     <div>
-        <a href="/dashboard.php">Panel</a>
+        <a href="<?php echo htmlspecialchars(app_url('dashboard.php')); ?>">Panel</a>
         <strong>Módulo de Compras</strong>
     </div>
     <div>
-        <a href="/actions/logout.php">Cerrar sesión</a>
+        <a href="<?php echo htmlspecialchars(app_url('actions/logout.php')); ?>">Cerrar sesión</a>
     </div>
 </header>
 <div class="container">
@@ -79,7 +79,7 @@ $success = $_GET['success'] ?? null;
                     <td><?php echo format_currency((float)$order['total_amount']); ?></td>
                     <td>
                         <?php if ($canManage): ?>
-                            <form action="/actions/update_purchase_status.php" method="post" class="actions">
+                            <form action="<?php echo htmlspecialchars(app_url('actions/update_purchase_status.php')); ?>" method="post" class="actions">
                                 <input type="hidden" name="order_id" value="<?php echo htmlspecialchars($order['id']); ?>">
                                 <label>Costo (ARS)
                                     <input type="number" step="0.01" min="0" name="purchase_cost" value="<?php echo htmlspecialchars($order['purchase_cost'] ?? 0); ?>" required>
@@ -96,7 +96,7 @@ $success = $_GET['success'] ?? null;
         </table>
         <?php if ($canManage): ?>
             <div class="section">
-                <form action="/actions/generate_purchase_pdf.php" method="get" target="_blank">
+                <form action="<?php echo htmlspecialchars(app_url('actions/generate_purchase_pdf.php')); ?>" method="get" target="_blank">
                     <button type="submit">Descargar lista consolidada en PDF</button>
                 </form>
             </div>

@@ -6,8 +6,7 @@ $username = trim($_POST['username'] ?? '');
 $newPassword = $_POST['new_password'] ?? '';
 
 if ($username === '' || $newPassword === '') {
-    header('Location: /modules/admin.php?error=1');
-    exit;
+    redirect_to('modules/admin.php?error=1');
 }
 
 $users = load_users();
@@ -22,10 +21,8 @@ foreach ($users as &$user) {
 unset($user);
 
 if (!$updated) {
-    header('Location: /modules/admin.php?error=1');
-    exit;
+    redirect_to('modules/admin.php?error=1');
 }
 
 save_users($users);
-header('Location: /modules/admin.php?success=1');
-exit;
+redirect_to('modules/admin.php?success=1');

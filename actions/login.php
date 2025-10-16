@@ -20,9 +20,7 @@ if ($foundUser && password_verify($password, $foundUser['password'] ?? '')) {
         'role' => $foundUser['role'],
         'name' => $foundUser['name'] ?? $foundUser['username'],
     ];
-    header('Location: /dashboard.php');
-    exit;
+    redirect_to('dashboard.php');
 }
 
-header('Location: /index.php?error=1');
-exit;
+redirect_to('index.php?error=1');

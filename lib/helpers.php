@@ -1,6 +1,48 @@
 <?php
 require_once __DIR__ . '/../config.php';
 
+if (!defined('APP_BASE_URL')) {
+    $documentRoot = $_SERVER['DOCUMENT_ROOT'] ?? '';
+    $basePath = '';
+
+    if ($documentRoot !== '') {
+        $documentRoot = rtrim(str_replace('\\', '/', $documentRoot), '/');
+        $appDirectory = str_replace('\\', '/', realpath(__DIR__ . '/..'));
+
+        if ($appDirectory !== false && strpos($appDirectory, $documentRoot) === 0) {
+            $basePath = substr($appDirectory, strlen($documentRoot));
+        }
+    }
+
+    if ($basePath === false || $basePath === null) {
+        $basePath = '';
+    }
+
+    define('APP_BASE_URL', $basePath === '' ? '' : rtrim($basePath, '/'));
+}
+
+function app_url(string $path = ''): string
+{
+    $base = rtrim(APP_BASE_URL, '/');
+    $path = ltrim($path, '/');
+
+    if ($path === '') {
+        return $base === '' ? '/' : $base;
+    }
+
+    if ($base === '' || $base === '/') {
+        return '/' . $path;
+    }
+
+    return $base . '/' . $path;
+}
+
+function redirect_to(string $path): void
+{
+    header('Location: ' . app_url($path));
+    exit;
+}
+
 function ensure_session(): void
 {
     if (session_status() === PHP_SESSION_NONE) {
@@ -32,8 +74,7 @@ function require_login(): void
 {
     ensure_session();
     if (!isset($_SESSION['user'])) {
-        header('Location: /index.php');
-        exit;
+        redirect_to('index.php');
     }
 }
 

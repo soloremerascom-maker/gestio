@@ -7,25 +7,25 @@ $metrics = calculate_metrics($orders);
 
 $roleNavigation = [
     'admin' => [
-        ['href' => '/modules/admin.php', 'label' => 'Administrador'],
-        ['href' => '/modules/sales.php', 'label' => 'Ventas'],
-        ['href' => '/modules/purchases.php', 'label' => 'Compras'],
-        ['href' => '/modules/production.php', 'label' => 'Producción'],
+        ['href' => app_url('modules/admin.php'), 'label' => 'Administrador'],
+        ['href' => app_url('modules/sales.php'), 'label' => 'Ventas'],
+        ['href' => app_url('modules/purchases.php'), 'label' => 'Compras'],
+        ['href' => app_url('modules/production.php'), 'label' => 'Producción'],
     ],
     'ventas' => [
-        ['href' => '/modules/sales.php', 'label' => 'Ventas'],
-        ['href' => '/modules/purchases.php', 'label' => 'Compras (consulta)'],
+        ['href' => app_url('modules/sales.php'), 'label' => 'Ventas'],
+        ['href' => app_url('modules/purchases.php'), 'label' => 'Compras (consulta)'],
     ],
     'compras' => [
-        ['href' => '/modules/purchases.php', 'label' => 'Compras'],
-        ['href' => '/modules/sales.php', 'label' => 'Ventas (consulta)'],
+        ['href' => app_url('modules/purchases.php'), 'label' => 'Compras'],
+        ['href' => app_url('modules/sales.php'), 'label' => 'Ventas (consulta)'],
     ],
     'produccion' => [
-        ['href' => '/modules/production.php', 'label' => 'Producción'],
-        ['href' => '/modules/sales.php', 'label' => 'Ventas (consulta)'],
+        ['href' => app_url('modules/production.php'), 'label' => 'Producción'],
+        ['href' => app_url('modules/sales.php'), 'label' => 'Ventas (consulta)'],
     ],
 ];
-$navigation = $roleNavigation[$user['role']] ?? [['href' => '/modules/sales.php', 'label' => 'Ventas']];
+$navigation = $roleNavigation[$user['role']] ?? [['href' => app_url('modules/sales.php'), 'label' => 'Ventas']];
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -58,7 +58,7 @@ $navigation = $roleNavigation[$user['role']] ?? [['href' => '/modules/sales.php'
     <div class="user-info">
         Bienvenido, <?php echo htmlspecialchars($user['name']); ?> (<?php echo htmlspecialchars($user['role']); ?>)
         &nbsp;|&nbsp;
-        <a class="logout" href="/actions/logout.php">Cerrar sesión</a>
+        <a class="logout" href="<?php echo htmlspecialchars(app_url('actions/logout.php')); ?>">Cerrar sesión</a>
     </div>
 </header>
 <nav>

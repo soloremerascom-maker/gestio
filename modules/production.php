@@ -36,11 +36,11 @@ $success = $_GET['success'] ?? null;
 <body>
 <header>
     <div>
-        <a href="/dashboard.php">Panel</a>
+        <a href="<?php echo htmlspecialchars(app_url('dashboard.php')); ?>">Panel</a>
         <strong>Módulo de Producción</strong>
     </div>
     <div>
-        <a href="/actions/logout.php">Cerrar sesión</a>
+        <a href="<?php echo htmlspecialchars(app_url('actions/logout.php')); ?>">Cerrar sesión</a>
     </div>
 </header>
 <div class="container">
@@ -83,7 +83,7 @@ $success = $_GET['success'] ?? null;
                     <td>
                         <span class="status <?php echo htmlspecialchars($order['production_status']); ?>"><?php echo ucfirst(str_replace('_', ' ', $order['production_status'])); ?></span>
                         <?php if ($canManage): ?>
-                            <form action="/actions/update_production_status.php" method="post">
+                            <form action="<?php echo htmlspecialchars(app_url('actions/update_production_status.php')); ?>" method="post">
                                 <input type="hidden" name="order_id" value="<?php echo htmlspecialchars($order['id']); ?>">
                                 <select name="production_status">
                                     <option value="pendiente" <?php echo $order['production_status'] === 'pendiente' ? 'selected' : ''; ?>>Pendiente</option>

@@ -44,11 +44,11 @@ $error = $_GET['error'] ?? null;
 <body>
 <header>
     <div>
-        <a href="/dashboard.php">Volver al panel</a>
+        <a href="<?php echo htmlspecialchars(app_url('dashboard.php')); ?>">Volver al panel</a>
         <strong>Módulo de Ventas</strong>
     </div>
     <div>
-        <a href="/actions/logout.php">Cerrar sesión</a>
+        <a href="<?php echo htmlspecialchars(app_url('actions/logout.php')); ?>">Cerrar sesión</a>
     </div>
 </header>
 <div class="container">
@@ -58,7 +58,7 @@ $error = $_GET['error'] ?? null;
         <div class="alert" style="background:#fdecea;color:#c0392b;">Hubo un problema al guardar la venta. Revisá los datos obligatorios.</div>
     <?php endif; ?>
     <h1>Registrar nueva venta</h1>
-    <form action="/actions/save_sale.php" method="post">
+    <form action="<?php echo htmlspecialchars(app_url('actions/save_sale.php')); ?>" method="post">
         <fieldset>
             <legend>Datos del cliente</legend>
             <label>Nombre completo

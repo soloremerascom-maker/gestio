@@ -8,15 +8,13 @@ $password = $_POST['password'] ?? '';
 $role = $_POST['role'] ?? '';
 
 if ($name === '' || $username === '' || $password === '' || $role === '') {
-    header('Location: /modules/admin.php?error=1');
-    exit;
+    redirect_to('modules/admin.php?error=1');
 }
 
 $users = load_users();
 foreach ($users as $user) {
     if (strcasecmp($user['username'], $username) === 0) {
-        header('Location: /modules/admin.php?error=1');
-        exit;
+        redirect_to('modules/admin.php?error=1');
     }
 }
 
@@ -28,5 +26,4 @@ $users[] = [
 ];
 
 save_users($users);
-header('Location: /modules/admin.php?success=1');
-exit;
+redirect_to('modules/admin.php?success=1');

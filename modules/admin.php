@@ -44,14 +44,14 @@ $error = $_GET['error'] ?? null;
     <div>
         <strong>Administrador</strong>
         <span class="nav-links">
-            <a href="/dashboard.php">Panel</a>
-            <a href="/modules/sales.php">Ventas</a>
-            <a href="/modules/purchases.php">Compras</a>
-            <a href="/modules/production.php">Producción</a>
+            <a href="<?php echo htmlspecialchars(app_url('dashboard.php')); ?>">Panel</a>
+            <a href="<?php echo htmlspecialchars(app_url('modules/sales.php')); ?>">Ventas</a>
+            <a href="<?php echo htmlspecialchars(app_url('modules/purchases.php')); ?>">Compras</a>
+            <a href="<?php echo htmlspecialchars(app_url('modules/production.php')); ?>">Producción</a>
         </span>
     </div>
     <div>
-        <a href="/actions/logout.php">Cerrar sesión</a>
+        <a href="<?php echo htmlspecialchars(app_url('actions/logout.php')); ?>">Cerrar sesión</a>
     </div>
 </header>
 <div class="container">
@@ -85,7 +85,7 @@ $error = $_GET['error'] ?? null;
         </div>
         <div class="card">
             <h2>Crear nuevo usuario</h2>
-            <form action="/actions/create_user.php" method="post">
+            <form action="<?php echo htmlspecialchars(app_url('actions/create_user.php')); ?>" method="post">
                 <label for="name">Nombre completo</label>
                 <input type="text" id="name" name="name" required>
 
@@ -124,7 +124,7 @@ $error = $_GET['error'] ?? null;
                             <td><?php echo htmlspecialchars($usuario['username']); ?></td>
                             <td><?php echo htmlspecialchars($usuario['role']); ?></td>
                             <td>
-                                <form action="/actions/update_user.php" method="post" style="display:flex; gap:8px; align-items:center;">
+                                <form action="<?php echo htmlspecialchars(app_url('actions/update_user.php')); ?>" method="post" style="display:flex; gap:8px; align-items:center;">
                                     <input type="hidden" name="username" value="<?php echo htmlspecialchars($usuario['username']); ?>">
                                     <input type="password" name="new_password" placeholder="Nueva contraseña" required>
                                     <button type="submit">Actualizar</button>

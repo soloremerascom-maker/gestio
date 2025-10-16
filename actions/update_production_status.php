@@ -6,8 +6,7 @@ $orderId = $_POST['order_id'] ?? '';
 $status = $_POST['production_status'] ?? 'pendiente';
 
 if ($orderId === '') {
-    header('Location: /modules/production.php?error=1');
-    exit;
+    redirect_to('modules/production.php?error=1');
 }
 
 $allowed = ['pendiente', 'en_proceso', 'entregado'];
@@ -18,8 +17,7 @@ if (!in_array($status, $allowed, true)) {
 $orders = load_orders();
 $index = find_order_index($orders, $orderId);
 if ($index === null) {
-    header('Location: /modules/production.php?error=1');
-    exit;
+    redirect_to('modules/production.php?error=1');
 }
 
 $now = date('Y-m-d H:i:s');
@@ -35,5 +33,4 @@ $orders[$index]['history'][] = [
 ];
 
 save_orders($orders);
-header('Location: /modules/production.php?success=1');
-exit;
+redirect_to('modules/production.php?success=1');
