@@ -1,0 +1,26 @@
+[
+  {
+    "name": "Administrador General",
+    "username": "admin",
+    "password": "$2y$12$.35/H7u0.m5t5iCfxfqfY.KZDE2fyI50DuPqw1l.Cts3wldJ3dNay",
+    "role": "admin"
+  },
+  {
+    "name": "Equipo de Ventas",
+    "username": "ventas",
+    "password": "$2y$12$ocfm0wMTWm3JgXSMuzIb0u37uPM81N9Fdi/MWbsoZ89JlmjTAH9gm",
+    "role": "ventas"
+  },
+  {
+    "name": "Equipo de Compras",
+    "username": "compras",
+    "password": "$2y$12$u0xf.KYyK5FcC8jGiWP66.Mx4n20tMzCLvNcM1VBcu..B/.qj4vNm",
+    "role": "compras"
+  },
+  {
+    "name": "Equipo de Producción",
+    "username": "produccion",
+    "password": "$2y$12$GT/9m7ajdq1mnF3G/twPeudOFk3XW4Q2XwLGZVuanCAM81V9FuRfW",
+    "role": "produccion"
+  }
+]
